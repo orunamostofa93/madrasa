@@ -4746,7 +4746,11 @@ var currentUser = null; // { role: 'admin'|'teacher'|'staff', pin, name, cls }
 
 function checkLogin() {
   const stored = sessionStorage.getItem('mms_user');
-  if(stored) { currentUser = JSON.parse(stored); applyAccess(); return; }
+  if(stored) {
+    currentUser = JSON.parse(stored);
+    applyAccess();
+    return;
+  }
   showLoginScreen();
 }
 
@@ -5209,6 +5213,10 @@ function init() {
   document.getElementById('instSub').textContent=data.settings.sub||'ব্যবস্থাপনা সিস্টেম';
   document.getElementById('loginInstName').textContent=data.settings.name||'মাদ্রাসা ম্যানেজমেন্ট';
   populateClassDropdowns();
+  // সব পেজ hide করে dashboard দেখাও
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  var dp = document.getElementById('page-dashboard');
+  if(dp) dp.classList.add('active');
   renderDashboard();
   const today=new Date().toISOString().split('T')[0];
   ['attDate','fDate','nDate','leaveFrom','leaveTo','sAdmDate','tJoin','qpDate'].forEach(id=>{
