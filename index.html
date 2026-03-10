@@ -2552,7 +2552,11 @@ function renderDashboard() {
   var clsBar = document.getElementById('classBarChart');
   if(clsBar) {
     var classes = data.settings.classes||[];
-    var clsCounts = classes.map(function(c){ return {cls:c,cnt:data.students.filter(function(s){ return s.cls===c; }).length}; });
+    // Extra: settings-এ নেই কিন্তু student আছে এমন class ও দেখাও
+    var extraCls = [];
+    data.students.forEach(function(s){ if(s.cls && classes.indexOf(s.cls.trim())===-1 && extraCls.indexOf(s.cls.trim())===-1) extraCls.push(s.cls.trim()); });
+    var allCls = classes.concat(extraCls);
+    var clsCounts = allCls.map(function(c){ return {cls:c,cnt:data.students.filter(function(s){ return (s.cls||'').trim()===c.trim(); }).length}; });
     var maxCnt = Math.max(1, Math.max.apply(null,clsCounts.map(function(x){ return x.cnt; })));
     var colors = ['var(--primary)','#2563ab','#7c3aed','#d97706','#dc2626','#0891b2','#059669'];
     clsBar.innerHTML = clsCounts.map(function(x,i){
@@ -2560,9 +2564,9 @@ function renderDashboard() {
       return '<div style="display:flex;align-items:center;gap:8px;">'+
         '<div style="width:60px;font-size:11px;color:var(--text-muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+x.cls+'</div>'+
         '<div style="flex:1;background:#f0f0f0;border-radius:4px;height:16px;">'+
-          '<div style="width:'+pct+'%;background:'+colors[i%colors.length]+';height:100%;border-radius:4px;transition:.4s;min-width:4px;"></div>'+
+          '<div style="width:'+pct+'%;background:'+colors[i%colors.length]+';height:100%;border-radius:4px;transition:.4s;min-width:'+(x.cnt>0?'4':'0')+'px;"></div>'+
         '</div>'+
-        '<div style="width:24px;font-size:11px;font-weight:700;color:var(--primary);">'+x.cnt+'</div>'+
+        '<div style="width:28px;font-size:11px;font-weight:700;color:'+(x.cnt>0?'var(--primary)':'#bbb')+';">'+x.cnt+'</div>'+
       '</div>';
     }).join('')||'<p style="color:var(--text-muted);font-size:12px;">শ্রেণি নেই।</p>';
   }
@@ -4097,7 +4101,7 @@ function loadAttendance() {
   const cls = document.getElementById('attClass').value;
   const dt = document.getElementById('attDate').value;
   if(!cls||!dt) { document.getElementById('attendanceGrid').innerHTML='<p class="text-muted">শ্রেণি ও তারিখ নির্বাচন করুন।</p>'; return; }
-  const students = data.students.filter(s=>s.cls===cls);
+  const students = data.students.filter(s=>(s.cls||'').trim()===cls.trim());
   if(students.length===0) { document.getElementById('attendanceGrid').innerHTML='<p class="text-muted">এই শ্রেণিতে কোনো শিক্ষার্থী নেই।</p>'; return; }
   const key = `${cls}_${dt}`;
   const saved = data.attendance[key]||{};
@@ -4150,7 +4154,7 @@ function setAtt(key, sid, status, btn) {
 function markAll(key, status) {
   if(!data.attendance[key]) data.attendance[key]={};
   const cls = document.getElementById('attClass').value;
-  data.students.filter(s=>s.cls===cls).forEach(s=>data.attendance[key][s.id]=status);
+  data.students.filter(s=>(s.cls||'').trim()===cls.trim()).forEach(s=>data.attendance[key][s.id]=status);
   loadAttendance();
 }
 function saveAttendance() {
@@ -4171,7 +4175,7 @@ function renderAttReport() {
   const cls = document.getElementById('attReportClass').value;
   const month = document.getElementById('attReportMonth').value;
   if(!cls||!month) { document.getElementById('attReportBody').innerHTML=''; return; }
-  const students = data.students.filter(s=>s.cls===cls);
+  const students = data.students.filter(s=>(s.cls||'').trim()===cls.trim());
   const keys = Object.keys(data.attendance).filter(k=>k.startsWith(cls+'_'+month));
   const body = students.map(s=>{
     let p=0,a=0;
@@ -7278,27 +7282,32 @@ function showTeacherDash(tab) {
 function renderTeacherAttPage() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('teacherAttDate').value = today;
-  // সব ক্লাস দেখাও — যেকোনো শিক্ষক যেকোনো ক্লাসের হাজিরা নিতে পারবে
   const sel = document.getElementById('teacherAttClassSel');
   sel.style.display = '';
   const classes = data.settings.classes || [];
+  // Settings-এ নেই কিন্তু student আছে এমন class ও যোগ করি
+  var extraCls = [];
+  data.students.forEach(function(s){ if(s.cls && classes.indexOf(s.cls.trim())===-1 && extraCls.indexOf(s.cls.trim())===-1) extraCls.push(s.cls.trim()); });
+  var allCls = classes.concat(extraCls);
   sel.innerHTML = '<option value="">শ্রেণি নির্বাচন করুন</option>' +
-    classes.map(c => `<option value="${c}"${c===currentUser.cls?' selected':''}>${c}</option>`).join('');
-  // assigned class থাকলে auto-load
-  if(currentUser.cls) {
-    sel.value = currentUser.cls;
-    loadTeacherAtt();
+    allCls.map(c => `<option value="${c}">${c}</option>`).join('');
+  // assigned class থাকলে auto-select, তারপর load
+  const assignedCls = currentUser && currentUser.cls ? currentUser.cls : '';
+  if(assignedCls && allCls.indexOf(assignedCls) > -1) {
+    sel.value = assignedCls;
   }
+  loadTeacherAtt();
 }
 
 function loadTeacherAtt() {
-  // Teacher mode হলে currentUser.cls ব্যবহার করো, admin mode হলে dropdown
-  const cls = (currentUser && currentUser.role==='teacher' && currentUser.cls)
-    ? currentUser.cls
-    : document.getElementById('teacherAttClassSel').value;
+  // সবসময় dropdown থেকেই cls নাও — teacher নিজেও অন্য class select করতে পারবে
+  const cls = document.getElementById('teacherAttClassSel').value;
   const dt = document.getElementById('teacherAttDate').value;
-  if(!cls||!dt) return;
-  const students = data.students.filter(s=>s.cls===cls);
+  if(!cls||!dt) {
+    document.getElementById('teacherAttGrid').innerHTML='<div class="alert alert-info">শ্রেণি ও তারিখ নির্বাচন করুন।</div>';
+    return;
+  }
+  const students = data.students.filter(s=>(s.cls||'').trim()===cls.trim());
   const key = `${cls}_${dt}`;
   const saved = data.attendance[key]||{};
   // Check consecutive absences
@@ -7360,7 +7369,7 @@ function loadTeacherAtt() {
 }
 
 function getConsecutiveAbsent(cls) {
-  const students = data.students.filter(s=>s.cls===cls);
+  const students = data.students.filter(s=>(s.cls||'').trim()===cls.trim());
   const result = [];
   const today = new Date();
   students.forEach(s=>{
@@ -7638,6 +7647,11 @@ function doCheckin(type) {
 
 // ===================== INIT =====================
 function init() {
+  // Data migration: cls field trim করো (space problem fix)
+  var clsFixed = false;
+  data.students.forEach(function(s){ if(s.cls && s.cls !== s.cls.trim()) { s.cls = s.cls.trim(); clsFixed = true; } });
+  if(clsFixed) save('students');
+
   const now = new Date();
   document.getElementById('headerDate').textContent = now.toLocaleDateString('bn-BD',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('instName').textContent=data.settings.name||'মাদ্রাসা ম্যানেজমেন্ট';
