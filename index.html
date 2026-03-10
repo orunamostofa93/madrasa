@@ -346,7 +346,18 @@
     .finance-summary { grid-template-columns:1fr; }
     .dashboard-grid { grid-template-columns:1fr; }
     #content { padding:16px; }
+    .perm-main-grid { grid-template-columns:1fr !important; }
   }
+  /* Draggable class chips */
+  #classList { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:4px; min-height:42px; padding:8px; border:2px dashed var(--border); border-radius:10px; background:#fafafa; }
+  .cls-chip { background:var(--primary-ultra-light); border:1.5px solid var(--primary); border-radius:20px; padding:5px 10px 5px 8px; font-size:12px; font-weight:700; color:var(--primary); display:inline-flex; align-items:center; gap:5px; cursor:grab; user-select:none; transition:.15s; }
+  .cls-chip:hover { box-shadow:0 2px 8px rgba(45,122,79,.2); }
+  .cls-chip.dragging { opacity:.35; transform:scale(.93); }
+  .cls-chip.drag-over { background:#d4edda; border-color:#28a745; transform:scale(1.06); }
+  .cls-chip .chip-drag { font-size:12px; opacity:.4; cursor:grab; }
+  .cls-chip .chip-del { cursor:pointer; color:var(--danger); font-weight:900; font-size:13px; line-height:1; margin-left:2px; }
+  .cls-chip .chip-del:hover { color:#900; }
+  .cls-mismatch-warn { background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:12px 14px; margin-top:8px; font-size:12px; }
 </style>
 </head>
 <body>
@@ -1389,10 +1400,15 @@
             </div>
           </div>
           <hr class="section-divider">
-          <div class="card-title mb-16" style="margin-bottom:12px;">📋 শ্রেণিসমূহ</div>
-          <div id="classList" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
-          <div class="flex gap-12">
-            <input id="newClassName" type="text" placeholder="নতুন শ্রেণি যোগ করুন..." style="flex:1;max-width:250px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="card-title mb-16" style="margin-bottom:0;">📋 শ্রেণিসমূহ</div>
+            <span style="font-size:11px;color:var(--text-muted);">⠿ টেনে সাজান</span>
+          </div>
+          <div id="classList"></div>
+          <div id="clsMismatchWarn" style="display:none;"></div>
+          <div class="flex gap-12" style="margin-top:8px;">
+            <input id="newClassName" type="text" placeholder="নতুন শ্রেণি যোগ করুন..." style="flex:1;max-width:250px;"
+              onkeydown="if(event.key==='Enter')addClass()">
             <button class="btn btn-primary btn-sm" onclick="addClass()">+ যোগ করুন</button>
           </div>
           <hr class="section-divider">
@@ -1415,45 +1431,62 @@
       </div>
 
       <!-- ======================== ACCESS CONTROL ======================== -->
-      <div class="card" style="margin-top:16px;">
+      <div class="card" style="margin-top:16px;" id="permCard">
         <div class="card-header">
           <span class="card-title">🔐 একসেস ও পার্মিশন ব্যবস্থাপনা</span>
-          <span style="font-size:11px;color:var(--text-muted);">শুধু প্রধান অ্যাডমিন দেখতে পাবেন</span>
+          <span style="font-size:11px;color:var(--text-muted);">শুধু সুপার অ্যাডমিন দেখতে পাবেন</span>
         </div>
-        <div class="card-body">
-          <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:10px;flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" id="permTab-users" onclick="switchPermTab('users')">👥 ব্যবহারকারী তালিকা</button>
-            <button class="btn btn-outline btn-sm" id="permTab-edit" onclick="switchPermTab('edit')">✏️ পার্মিশন সম্পাদনা</button>
-            <button class="btn btn-outline btn-sm" id="permTab-log" onclick="switchPermTab('log')">📋 লগিন লগ</button>
-          </div>
-          <!-- Users List -->
-          <div id="permSection-users">
-            <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <div style="font-size:13px;font-weight:600;color:var(--primary);">🔑 সকল ব্যবহারকারী ও তাদের অ্যাক্সেস</div>
-            </div>
-            <div class="user-card" style="border-color:var(--primary);background:var(--primary-ultra-light);margin-bottom:10px;">
-              <div class="user-card-header">
-                <div class="user-card-avatar" style="background:linear-gradient(135deg,#c9a227,#e8b84b);">👑</div>
-                <div style="flex:1;">
-                  <div class="user-card-name">প্রধান অ্যাডমিন (Super Admin)</div>
-                  <div class="user-card-role">সম্পূর্ণ সিস্টেম নিয়ন্ত্রণ — সব অ্যাক্সেস</div>
+        <div class="card-body" style="padding:0;">
+          <!-- Two-column layout -->
+          <div style="display:grid;grid-template-columns:300px 1fr;min-height:400px;" id="permMainGrid" class="perm-main-grid">
+            <!-- LEFT: Users List -->
+            <div style="border-right:2px solid var(--border);padding:16px;background:#fafafa;border-radius:0 0 0 var(--radius);">
+              <!-- Super Admin fixed -->
+              <div style="background:linear-gradient(135deg,#1a3d2e,#2d7a4f);border-radius:10px;padding:12px;margin-bottom:14px;color:#fff;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-size:20px;">👑</span>
+                  <div>
+                    <div style="font-weight:700;font-size:13px;">সুপার অ্যাডমিন</div>
+                    <div style="font-size:10px;opacity:.8;">সম্পূর্ণ সিস্টেম নিয়ন্ত্রণ</div>
+                  </div>
+                  <span style="margin-left:auto;background:rgba(255,255,255,.2);border-radius:10px;padding:2px 8px;font-size:10px;">সব একসেস</span>
                 </div>
-                <span style="background:var(--primary);color:#fff;border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;white-space:nowrap;">🔓 সকল পার্মিশন</span>
+                <div style="font-size:10px;opacity:.7;">PIN: সেটিংস → Admin PIN</div>
               </div>
-              <div style="font-size:11px;color:var(--text-muted);">PIN পরিবর্তন: উপরে "সাধারণ তথ্য" → Admin PIN</div>
+
+              <!-- Add access button -->
+              <button class="btn btn-primary" style="width:100%;margin-bottom:12px;" onclick="openAddAccessPanel()">
+                + একসেস দিন
+              </button>
+
+              <!-- Access given list -->
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">একসেস প্রাপ্তরা</div>
+              <div id="permUserList" style="display:flex;flex-direction:column;gap:6px;">লোড হচ্ছে...</div>
+              
+              <!-- Log button -->
+              <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+                <button class="btn btn-outline btn-sm" style="width:100%;" onclick="switchPermTab('log')">📋 লগিন ইতিহাস</button>
+              </div>
             </div>
-            <div id="permUserList">লোড হচ্ছে...</div>
-          </div>
-          <!-- Permission Edit -->
-          <div id="permSection-edit" style="display:none;">
-            <div id="permEditContent">
-              <p style="color:var(--text-muted);text-align:center;padding:20px;">বাম থেকে একজন ব্যবহারকারী নির্বাচন করুন।</p>
+
+            <!-- RIGHT: Edit panel -->
+            <div style="padding:20px;" id="permRightPanel">
+              <!-- Default state -->
+              <div id="permSection-users" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);text-align:center;gap:12px;">
+                <div style="font-size:48px;">🔐</div>
+                <div style="font-weight:700;font-size:15px;">একসেস ব্যবস্থাপনা</div>
+                <div style="font-size:13px;">বামে "+ একসেস দিন" ক্লিক করুন<br>অথবা কোনো ব্যবহারকারীর "⚙️ সম্পাদনা" বাটনে ক্লিক করুন।</div>
+              </div>
+              <!-- Edit panel -->
+              <div id="permSection-edit" style="display:none;">
+                <div id="permEditContent"></div>
+              </div>
+              <!-- Log panel -->
+              <div id="permSection-log" style="display:none;">
+                <div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:14px;">📋 লগিন ইতিহাস</div>
+                <div id="accessLogList" style="font-size:12px;max-height:400px;overflow-y:auto;"></div>
+              </div>
             </div>
-          </div>
-          <!-- Access Log -->
-          <div id="permSection-log" style="display:none;">
-            <div style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:10px;">📋 সাম্প্রতিক লগিন ইতিহাস</div>
-            <div id="accessLogList" style="font-size:12px;max-height:300px;overflow-y:auto;"></div>
           </div>
         </div>
       </div>
@@ -5101,10 +5134,88 @@ function saveSettings() {
   toast('সেটিংস সংরক্ষিত হয়েছে ✅');
 }
 function renderClassList() {
-  document.getElementById('classList').innerHTML = (data.settings.classes||[]).map(c=>`
-    <div style="background:var(--primary-ultra-light);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--primary);display:flex;align-items:center;gap:6px;">
-      ${c} <span onclick="removeClass('${c}')" style="cursor:pointer;color:var(--danger);font-weight:700;">✕</span>
-    </div>`).join('');
+  var classes = data.settings.classes||[];
+  var el = document.getElementById('classList');
+  el.innerHTML = classes.map(function(c,i){
+    return '<div class="cls-chip" draggable="true" data-cls="'+c+'" data-idx="'+i+'">'
+      +'<span class="chip-drag">⠿</span>'
+      +'<span>'+c+'</span>'
+      +'<span class="chip-del" onclick="removeClass(\''+c.replace(/'/g,"\\'")+'\')" title="মুছুন">✕</span>'
+      +'</div>';
+  }).join('');
+  // Drag events
+  el.querySelectorAll('.cls-chip').forEach(function(chip) {
+    chip.addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', chip.dataset.idx);
+      chip.classList.add('dragging');
+    });
+    chip.addEventListener('dragend', function() { chip.classList.remove('dragging'); });
+    chip.addEventListener('dragover', function(e) { e.preventDefault(); chip.classList.add('drag-over'); });
+    chip.addEventListener('dragleave', function() { chip.classList.remove('drag-over'); });
+    chip.addEventListener('drop', function(e) {
+      e.preventDefault();
+      chip.classList.remove('drag-over');
+      var fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      var toIdx = parseInt(chip.dataset.idx);
+      if(fromIdx === toIdx || isNaN(fromIdx) || isNaN(toIdx)) return;
+      var arr = data.settings.classes;
+      var item = arr.splice(fromIdx, 1)[0];
+      arr.splice(toIdx, 0, item);
+      save('settings');
+      renderClassList();
+      checkClassMismatch();
+    });
+  });
+  checkClassMismatch();
+}
+
+function checkClassMismatch() {
+  var classes = data.settings.classes||[];
+  // Find students whose cls is not in current class list
+  var mismatchedCls = {};
+  (data.students||[]).forEach(function(s) {
+    if(s.cls && classes.indexOf(s.cls.trim()) === -1) {
+      mismatchedCls[s.cls] = (mismatchedCls[s.cls]||0) + 1;
+    }
+  });
+  var warnEl = document.getElementById('clsMismatchWarn');
+  if(!warnEl) return;
+  var keys = Object.keys(mismatchedCls);
+  if(keys.length === 0) { warnEl.style.display='none'; return; }
+  var html = '<div class="cls-mismatch-warn">'
+    +'<div style="font-weight:700;color:#856404;margin-bottom:8px;">⚠️ শ্রেণির নামে অমিল পাওয়া গেছে!</div>'
+    +'<div style="color:#856404;margin-bottom:10px;font-size:12px;">নিচের শ্রেণির নাম শিক্ষার্থীদের তথ্যে আছে, কিন্তু বর্তমান শ্রেণির তালিকায় নেই। এটি হতে পারে শ্রেণির নাম পরিবর্তন করার কারণে।</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">';
+  keys.forEach(function(oldCls) {
+    var cnt = mismatchedCls[oldCls];
+    html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #ffc107;border-radius:8px;padding:8px 12px;">'
+      +'<span style="font-weight:700;color:#856404;">&#34;'+oldCls+'&#34;</span>'
+      +'<span style="font-size:11px;color:var(--text-muted);">('+cnt+' জন শিক্ষার্থী)</span>'
+      +'<span style="font-size:11px;color:var(--text-muted);">→ কোন শ্রেণিতে ঠিক করবেন?</span>'
+      +'<select id="mismatch-sel-'+encodeURIComponent(oldCls)+'" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;">'
+      +'<option value="">নির্বাচন করুন</option>'
+      +(data.settings.classes||[]).map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('')
+      +'</select>'
+      +'<button class="btn btn-primary btn-sm" onclick="fixClassMismatch(\''+oldCls.replace(/'/g,"\\'")+'\')" style="white-space:nowrap;">✅ ঠিক করুন</button>'
+      +'</div>';
+  });
+  html += '</div></div>';
+  warnEl.innerHTML = html;
+  warnEl.style.display = '';
+}
+
+function fixClassMismatch(oldCls) {
+  var selId = 'mismatch-sel-'+encodeURIComponent(oldCls);
+  var sel = document.getElementById(selId);
+  if(!sel || !sel.value) { toast('নতুন শ্রেণি নির্বাচন করুন!','error'); return; }
+  var newCls = sel.value;
+  var count = 0;
+  (data.students||[]).forEach(function(s) {
+    if(s.cls === oldCls) { s.cls = newCls; count++; }
+  });
+  save('students');
+  renderClassList();
+  toast(count+' জন শিক্ষার্থীর শ্রেণি "'+oldCls+'" থেকে "'+newCls+'" তে ঠিক করা হয়েছে ✅');
 }
 function addClass() {
   const nm = document.getElementById('newClassName').value.trim();
@@ -8017,82 +8128,124 @@ function doCheckin(type) {
 }
 
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║           PERMISSION SYSTEM — সম্পূর্ণ নতুন                ║
-// ╚══════════════════════════════════════════════════════════════╝
 
-// ---- সব পেজের সংজ্ঞা ----
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║              PERMISSION SYSTEM v2 — Role-Based                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+// ---- সব পেজ সংজ্ঞা ----
 const ALL_PAGES = [
-  { id:'dashboard',   label:'ড্যাশবোর্ড',           icon:'📊', group:'সাধারণ' },
-  { id:'students',    label:'শিক্ষার্থী তালিকা',     icon:'👨‍🎓', group:'শিক্ষার্থী' },
-  { id:'fee',         label:'ফি আদায়',               icon:'💳', group:'শিক্ষার্থী' },
-  { id:'results',     label:'পরীক্ষার ফলাফল',        icon:'📋', group:'শিক্ষার্থী' },
-  { id:'promote',     label:'শ্রেণি উন্নীত',          icon:'🎓', group:'শিক্ষার্থী' },
-  { id:'attendance',  label:'উপস্থিতি',               icon:'✅', group:'শিক্ষার্থী' },
-  { id:'teachers',    label:'শিক্ষক/স্টাফ',           icon:'👨‍🏫', group:'শিক্ষক' },
-  { id:'payroll',     label:'পেরোল/বেতন',             icon:'💵', group:'শিক্ষক' },
-  { id:'leave',       label:'ছুটির আবেদন',            icon:'📝', group:'শিক্ষক' },
-  { id:'remarks',     label:'মন্তব্য অনুমোদন',        icon:'💬', group:'শিক্ষক' },
-  { id:'routine',     label:'ক্লাস রুটিন',            icon:'🗓️', group:'একাডেমিক' },
-  { id:'syllabus',    label:'সিলেবাস',                 icon:'📚', group:'একাডেমিক' },
-  { id:'exampaper',   label:'প্রশ্নপত্র তৈরি',         icon:'📄', group:'একাডেমিক' },
-  { id:'finance',     label:'আয়-ব্যয়',               icon:'💰', group:'হিসাব' },
-  { id:'hostel',      label:'হোস্টেল ব্যবস্থাপনা',    icon:'🏠', group:'হোস্টেল' },
-  { id:'notice',      label:'বিজ্ঞপ্তি',               icon:'📢', group:'অন্যান্য' },
-  { id:'letters',     label:'পত্র ও প্রমাণপত্র',       icon:'📜', group:'অন্যান্য' },
-  { id:'idcard',      label:'আইডি কার্ড',              icon:'🪪', group:'অন্যান্য' },
-  { id:'whatsapp',    label:'WhatsApp টেমপ্লেট',       icon:'📲', group:'অন্যান্য' },
-  { id:'stock',       label:'মালামাল স্টক',            icon:'📦', group:'অন্যান্য' },
-  { id:'settings',    label:'সেটিংস',                  icon:'⚙️', group:'অ্যাডমিন' },
+  { id:'dashboard',  label:'ড্যাশবোর্ড',         icon:'📊', group:'সাধারণ' },
+  { id:'students',   label:'শিক্ষার্থী তালিকা',   icon:'👨‍🎓', group:'শিক্ষার্থী' },
+  { id:'fee',        label:'ফি আদায়',             icon:'💳', group:'শিক্ষার্থী' },
+  { id:'results',    label:'পরীক্ষার ফলাফল',      icon:'📋', group:'শিক্ষার্থী' },
+  { id:'promote',    label:'শ্রেণি উন্নীত',        icon:'🎓', group:'শিক্ষার্থী' },
+  { id:'attendance', label:'উপস্থিতি',             icon:'✅', group:'শিক্ষার্থী' },
+  { id:'teachers',   label:'শিক্ষক/স্টাফ',         icon:'👨‍🏫', group:'শিক্ষক' },
+  { id:'payroll',    label:'পেরোল/বেতন',           icon:'💵', group:'শিক্ষক' },
+  { id:'leave',      label:'ছুটির আবেদন',          icon:'📝', group:'শিক্ষক' },
+  { id:'remarks',    label:'মন্তব্য অনুমোদন',      icon:'💬', group:'শিক্ষক' },
+  { id:'routine',    label:'ক্লাস রুটিন',          icon:'🗓️', group:'একাডেমিক' },
+  { id:'syllabus',   label:'সিলেবাস',               icon:'📚', group:'একাডেমিক' },
+  { id:'exampaper',  label:'প্রশ্নপত্র তৈরি',       icon:'📄', group:'একাডেমিক' },
+  { id:'finance',    label:'আয়-ব্যয়',             icon:'💰', group:'হিসাব' },
+  { id:'hostel',     label:'হোস্টেল ব্যবস্থাপনা',  icon:'🏠', group:'হোস্টেল' },
+  { id:'notice',     label:'বিজ্ঞপ্তি',             icon:'📢', group:'অন্যান্য' },
+  { id:'letters',    label:'পত্র ও প্রমাণপত্র',     icon:'📜', group:'অন্যান্য' },
+  { id:'idcard',     label:'আইডি কার্ড',            icon:'🪪', group:'অন্যান্য' },
+  { id:'whatsapp',   label:'WhatsApp টেমপ্লেট',     icon:'📲', group:'অন্যান্য' },
+  { id:'stock',      label:'মালামাল স্টক',          icon:'📦', group:'অন্যান্য' },
+  { id:'settings',   label:'সেটিংস',                icon:'⚙️', group:'অ্যাডমিন' },
 ];
 
-// ---- Write/Delete permission keys ----
+// ---- Write permission keys ----
 const ALL_WRITE_PERMS = [
-  { id:'w_student_add',    label:'শিক্ষার্থী যোগ/সম্পাদনা',    icon:'✏️' },
-  { id:'w_student_delete', label:'শিক্ষার্থী মুছে ফেলা',        icon:'🗑️' },
-  { id:'w_fee',            label:'ফি আদায়/সম্পাদনা',           icon:'💳' },
-  { id:'w_attendance',     label:'হাজিরা সংরক্ষণ',              icon:'✅' },
-  { id:'w_result',         label:'ফলাফল যোগ/মুছুন',             icon:'📋' },
-  { id:'w_teacher_manage', label:'শিক্ষক/স্টাফ ব্যবস্থাপনা',    icon:'👨‍🏫' },
-  { id:'w_payroll',        label:'বেতন প্রদান',                 icon:'💵' },
-  { id:'w_leave_approve',  label:'ছুটি অনুমোদন',               icon:'📝' },
-  { id:'w_finance',        label:'আয়-ব্যয় এন্ট্রি',            icon:'💰' },
-  { id:'w_hostel',         label:'হোস্টেল ব্যবস্থাপনা',         icon:'🏠' },
-  { id:'w_notice',         label:'বিজ্ঞপ্তি প্রকাশ',            icon:'📢' },
-  { id:'w_stock',          label:'স্টক এন্ট্রি',                icon:'📦' },
-  { id:'w_settings',       label:'সেটিংস পরিবর্তন',             icon:'⚙️' },
+  { id:'w_student_add',    label:'শিক্ষার্থী যোগ/এডিট',    icon:'✏️', group:'শিক্ষার্থী' },
+  { id:'w_student_delete', label:'শিক্ষার্থী মুছে ফেলা',   icon:'🗑️', group:'শিক্ষার্থী' },
+  { id:'w_fee',            label:'ফি আদায়/এডিট',          icon:'💳', group:'শিক্ষার্থী' },
+  { id:'w_attendance',     label:'হাজিরা সংরক্ষণ',         icon:'✅', group:'শিক্ষার্থী' },
+  { id:'w_result',         label:'ফলাফল যোগ/মুছুন',        icon:'📋', group:'শিক্ষার্থী' },
+  { id:'w_teacher_manage', label:'শিক্ষক/স্টাফ যোগ/এডিট', icon:'👨‍🏫', group:'শিক্ষক' },
+  { id:'w_payroll',        label:'বেতন প্রদান',            icon:'💵', group:'শিক্ষক' },
+  { id:'w_leave_approve',  label:'ছুটি অনুমোদন',          icon:'📝', group:'শিক্ষক' },
+  { id:'w_finance',        label:'আয়-ব্যয় এন্ট্রি',       icon:'💰', group:'হিসাব' },
+  { id:'w_hostel',         label:'হোস্টেল ব্যবস্থাপনা',    icon:'🏠', group:'হোস্টেল' },
+  { id:'w_notice',         label:'বিজ্ঞপ্তি প্রকাশ',       icon:'📢', group:'অন্যান্য' },
+  { id:'w_stock',          label:'স্টক এন্ট্রি',           icon:'📦', group:'অন্যান্য' },
+  { id:'w_settings',       label:'সেটিংস পরিবর্তন',        icon:'⚙️', group:'অ্যাডমিন' },
 ];
 
-// ---- প্রিসেট রোল টেমপ্লেট ----
-const ROLE_PRESETS = {
-  'শ্রেণি শিক্ষক': {
+// ---- Built-in Roles (preset) ----
+const BUILTIN_ROLES = {
+  'super_admin': {
+    label:'সুপার অ্যাডমিন', icon:'👑', color:'#1a3d2e', badge:'#c9a227',
+    desc:'সমস্ত সিস্টেম একসেস',
+    pages: ALL_PAGES.map(function(p){return p.id;}),
+    writes: ALL_WRITE_PERMS.map(function(w){return w.id;})
+  },
+  'admin': {
+    label:'অ্যাডমিন', icon:'🛡️', color:'#1a3d2e', badge:'#2d7a4f',
+    desc:'বেশিরভাগ একসেস, সেটিংস ছাড়া',
+    pages: ['dashboard','students','fee','results','attendance','teachers','payroll','leave','remarks','routine','syllabus','exampaper','finance','hostel','notice','letters','idcard','whatsapp','stock'],
+    writes: ['w_student_add','w_fee','w_attendance','w_result','w_teacher_manage','w_payroll','w_leave_approve','w_finance','w_hostel','w_notice','w_stock']
+  },
+  'principal': {
+    label:'প্রিন্সিপাল', icon:'🎓', color:'#1a3d2e', badge:'#7c3aed',
+    desc:'একাডেমিক সব একসেস',
+    pages: ['dashboard','students','results','attendance','teachers','leave','remarks','routine','syllabus','exampaper','notice','letters','idcard'],
+    writes: ['w_student_add','w_attendance','w_result','w_leave_approve','w_notice']
+  },
+  'manager': {
+    label:'ম্যানেজার', icon:'💼', color:'#1a3d2e', badge:'#0891b2',
+    desc:'ফি, হিসাব, হোস্টেল ব্যবস্থাপনা',
+    pages: ['dashboard','students','fee','finance','hostel','stock','notice','letters','idcard'],
+    writes: ['w_student_add','w_fee','w_finance','w_hostel','w_stock','w_notice']
+  },
+  'teacher': {
+    label:'শ্রেণি শিক্ষক', icon:'👨‍🏫', color:'#1a3d2e', badge:'#059669',
+    desc:'হাজিরা, ফলাফল, রুটিন',
     pages: ['dashboard','attendance','results','routine','syllabus','remarks','leave'],
     writes: ['w_attendance','w_result']
   },
-  'অফিস সহকারী': {
+  'office': {
+    label:'অফিস সহকারী', icon:'🖊️', color:'#1a3d2e', badge:'#d97706',
+    desc:'ফি, ছাত্র তথ্য, বিজ্ঞপ্তি',
     pages: ['dashboard','students','fee','attendance','notice','letters','idcard'],
     writes: ['w_student_add','w_fee','w_attendance','w_notice']
   },
-  'হোস্টেল সুপার': {
+  'hostel_super': {
+    label:'হোস্টেল সুপার', icon:'🏠', color:'#1a3d2e', badge:'#dc2626',
+    desc:'হোস্টেল ব্যবস্থাপনা',
     pages: ['dashboard','hostel','students','notice'],
     writes: ['w_hostel']
   },
-  'হিসাবরক্ষক': {
+  'accountant': {
+    label:'হিসাবরক্ষক', icon:'💰', color:'#1a3d2e', badge:'#6d28d9',
+    desc:'ফি ও আর্থিক লেনদেন',
     pages: ['dashboard','fee','finance','payroll'],
     writes: ['w_fee','w_finance','w_payroll']
   },
-  'স্টাফ': {
-    pages: ['dashboard'],
+  'staff': {
+    label:'স্টাফ', icon:'👤', color:'#555', badge:'#6c757d',
+    desc:'শুধু স্টক এন্ট্রি ও ড্যাশবোর্ড',
+    pages: ['dashboard','stock'],
     writes: ['w_stock']
   },
+  'custom': {
+    label:'কাস্টম', icon:'⚙️', color:'#555', badge:'#888',
+    desc:'নিজে বেছে সেট করুন',
+    pages: [], writes: []
+  }
 };
 
-// ---- canAccess — permission check ----
+// ---- Permission check functions ----
 function canAccess(pageId) {
   if(!currentUser) return false;
   if(currentUser.role === 'admin') return true;
   var perms = getTeacherPerms(currentUser.id);
   if(!perms) return false;
+  if(perms.builtinRole === 'super_admin') return true;
   return (perms.pages||[]).indexOf(pageId) > -1;
 }
 function canWrite(permId) {
@@ -8100,283 +8253,364 @@ function canWrite(permId) {
   if(currentUser.role === 'admin') return true;
   var perms = getTeacherPerms(currentUser.id);
   if(!perms) return false;
+  if(perms.builtinRole === 'super_admin') return true;
   return (perms.writes||[]).indexOf(permId) > -1;
 }
 function getTeacherPerms(tid) {
   return ((data.settings.userPerms)||{})[tid] || null;
 }
-
-// ---- Permission save ----
 function saveUserPerms(tid, perms) {
   if(!data.settings.userPerms) data.settings.userPerms = {};
   data.settings.userPerms[tid] = perms;
   save('settings');
-  toast('পার্মিশন সংরক্ষিত হয়েছে ✅');
 }
 
-// ---- Access log ----
+// ---- Access Log ----
 function logAccess(userId, userName, action) {
   if(!data.settings.accessLog) data.settings.accessLog = [];
-  data.settings.accessLog.unshift({
-    uid: userId, name: userName, action: action,
-    time: new Date().toLocaleString('bn-BD')
-  });
-  // max 100 entries
+  data.settings.accessLog.unshift({ uid:userId, name:userName, action:action, time:new Date().toLocaleString('bn-BD') });
   if(data.settings.accessLog.length > 100) data.settings.accessLog = data.settings.accessLog.slice(0,100);
 }
 
-// ---- Tab switcher ----
-var _activePermTab = 'users';
+// ---- Tab switcher (right panel) ----
 function switchPermTab(tab) {
-  _activePermTab = tab;
   ['users','edit','log'].forEach(function(t) {
     var sec = document.getElementById('permSection-'+t);
-    var btn = document.getElementById('permTab-'+t);
     if(sec) sec.style.display = t===tab ? '' : 'none';
-    if(btn) { btn.className = t===tab ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'; }
   });
-  if(tab==='users') renderPermUsers();
+  if(tab==='users') {
+    // reset to default state
+    document.getElementById('permSection-users').style.display = 'flex';
+    document.getElementById('permSection-edit').style.display = 'none';
+    document.getElementById('permSection-log').style.display = 'none';
+  }
   if(tab==='log') renderAccessLog();
 }
 
-// ---- Render users list ----
+// ---- Render left-panel user list ----
 function renderPermUsers() {
   var el = document.getElementById('permUserList');
   if(!el) return;
-  var teachers = data.teachers || [];
+  var teachers = data.teachers||[];
   if(teachers.length === 0) {
-    el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">কোনো শিক্ষক/স্টাফ নেই।</p>';
+    el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">কোনো শিক্ষক/স্টাফ নেই।</p>';
     return;
   }
   el.innerHTML = teachers.map(function(t) {
     var perms = getTeacherPerms(t.id);
-    var pageCount = perms ? (perms.pages||[]).length : 0;
-    var writeCount = perms ? (perms.writes||[]).length : 0;
-    var hasAccess = perms && pageCount > 0;
-    var roleLabel = t.type || 'শিক্ষক';
-    var avatarEmoji = t.type==='স্টাফ' ? '👤' : t.type==='পিয়ন' ? '🧹' : '👨‍🏫';
-    var archived = t.archived ? '<span style="background:#6c757d;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px;">আর্কাইভ</span>' : '';
-    return '<div class="user-card" style="'+(t.archived?'opacity:.6;':'')+(hasAccess?'border-color:var(--primary-light);':'')+'">'+
-      '<div class="user-card-header">'+
-        '<div class="user-card-avatar">'+avatarEmoji+'</div>'+
-        '<div style="flex:1">'+
-          '<div class="user-card-name">'+t.name+archived+'</div>'+
-          '<div class="user-card-role">'+roleLabel+(t.assignedClass?' — শ্রেণি: '+t.assignedClass:'')+'</div>'+
-        '</div>'+
-        '<button class="btn btn-primary btn-sm" onclick="openPermEdit(\''+t.id+'\')">🔧 পার্মিশন সেট</button>'+
-      '</div>'+
-      '<div style="margin-top:6px;">'+
-        (hasAccess
-          ? '<span class="perm-badge perm-badge-green">'+pageCount+' টি পেজ</span>'+
-            '<span class="perm-badge perm-badge-blue">'+writeCount+' টি লেখার অনুমতি</span>'+
-            (perms.preset?'<span class="perm-badge perm-badge-gray">📋 '+perms.preset+'</span>':'')
-          : '<span class="perm-badge perm-badge-red">❌ কোনো একসেস নেই</span>'
-        )+
-      '</div>'+
-    '</div>';
+    var roleKey = perms ? perms.builtinRole : null;
+    var roleInfo = roleKey ? BUILTIN_ROLES[roleKey] : null;
+    var hasAccess = !!(perms && roleKey);
+    var avatarEmoji = t.type==='স্টাফ'?'👤':t.type==='পিয়ন'?'🧹':'👨‍🏫';
+    return '<div onclick="openPermEdit(\''+t.id+'\')" style="padding:10px 12px;border-radius:8px;border:1.5px solid '+(hasAccess?BUILTIN_ROLES[roleKey].badge:'#ddd')+';background:'+(hasAccess?'#fff':'#fafafa')+';cursor:pointer;transition:.15s;" onmouseover="this.style.borderColor=\'var(--primary)\'" onmouseout="this.style.borderColor=\''+(hasAccess?(BUILTIN_ROLES[roleKey]?BUILTIN_ROLES[roleKey].badge:'#ddd'):'#ddd')+'\'">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+        +'<span style="font-size:16px;">'+avatarEmoji+'</span>'
+        +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.name+(t.archived?' 📦':'')+'</div>'
+          +'<div style="font-size:10px;color:var(--text-muted);">'+(t.type||'শিক্ষক')+'</div>'
+        +'</div>'
+        +(hasAccess
+          ? '<span style="background:'+BUILTIN_ROLES[roleKey].badge+';color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;white-space:nowrap;">'+BUILTIN_ROLES[roleKey].icon+' '+BUILTIN_ROLES[roleKey].label+'</span>'
+          : '<span style="background:#eee;color:#888;border-radius:10px;padding:1px 7px;font-size:9px;">নেই</span>'
+        )
+      +'</div>'
+    +'</div>';
   }).join('');
 }
 
-// ---- Open permission editor ----
-function openPermEdit(tid) {
-  switchPermTab('edit');
-  var t = data.teachers.find(function(x){ return x.id===tid; });
-  if(!t) return;
-  var perms = getTeacherPerms(tid) || { pages:[], writes:[], preset:'' };
-  var groups = {};
+// ---- Open Add Access panel ----
+function openAddAccessPanel() {
+  document.getElementById('permSection-users').style.display = 'none';
+  document.getElementById('permSection-edit').style.display = '';
+  document.getElementById('permSection-log').style.display = 'none';
+  
+  var teachers = data.teachers||[];
+  var html = '<div style="margin-bottom:16px;">'
+    +'<button class="btn btn-outline btn-sm" onclick="switchPermTab(\'users\');renderPermUsers();">← ফিরে যান</button>'
+    +'</div>';
+  
+  html += '<div style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:14px;">+ নতুন একসেস দিন</div>';
+
+  // Step 1: Select employee
+  html += '<div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:14px;">'
+    +'<label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">① কাকে একসেস দিবেন?</label>'
+    +'<select id="permNewUser" onchange="onPermUserSelect(this.value)" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">'
+    +'<option value="">— ব্যবহারকারী নির্বাচন করুন —</option>'
+    +teachers.map(function(t){
+      var perms = getTeacherPerms(t.id);
+      var roleKey = perms ? perms.builtinRole : null;
+      var roleLabel = roleKey && BUILTIN_ROLES[roleKey] ? ' ('+BUILTIN_ROLES[roleKey].label+')' : ' (একসেস নেই)';
+      return '<option value="'+t.id+'">'+t.name+' — '+(t.type||'শিক্ষক')+roleLabel+'</option>';
+    }).join('')
+    +'</select>'
+    +'</div>';
+
+  html += '<div id="permRoleSelectArea" style="display:none;"></div>';
+  document.getElementById('permEditContent').innerHTML = html;
+}
+
+function onPermUserSelect(tid) {
+  if(!tid) { document.getElementById('permRoleSelectArea').style.display='none'; return; }
+  var t = data.teachers.find(function(x){return x.id===tid;});
+  var currentPerms = getTeacherPerms(tid);
+  var currentRole = currentPerms ? currentPerms.builtinRole : '';
+
+  var html = '<div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:14px;">'
+    +'<label style="font-size:12px;font-weight:700;display:block;margin-bottom:10px;">② ভূমিকা (Role) নির্বাচন করুন</label>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;" id="roleGrid">';
+
+  Object.keys(BUILTIN_ROLES).forEach(function(rkey) {
+    var r = BUILTIN_ROLES[rkey];
+    var isActive = currentRole === rkey;
+    html += '<div class="role-card'+(isActive?' role-active':'')+'" onclick="selectRole(\''+tid+'\',\''+rkey+'\')" '
+      +'style="padding:10px;border-radius:10px;border:2px solid '+(isActive?r.badge:'#ddd')+';cursor:pointer;transition:.15s;background:'+(isActive?'#f0fff4':'#fff')+';text-align:center;">'
+      +'<div style="font-size:22px;margin-bottom:4px;">'+r.icon+'</div>'
+      +'<div style="font-weight:700;font-size:12px;color:'+(isActive?r.badge:'#333')+';">'+r.label+'</div>'
+      +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">'+r.desc+'</div>'
+      +'</div>';
+  });
+  html += '</div></div>';
+
+  // Permission detail area
+  html += '<div id="permDetailArea"></div>';
+
+  // If already has role, show details
+  if(currentRole) {
+    html += '';
+  }
+
+  document.getElementById('permRoleSelectArea').innerHTML = html;
+  document.getElementById('permRoleSelectArea').style.display = '';
+
+  // Show current role details if exists
+  if(currentRole) {
+    showRoleDetails(tid, currentRole, currentPerms);
+  }
+}
+
+function selectRole(tid, rkey) {
+  // Update card UI
+  document.querySelectorAll('#roleGrid > div').forEach(function(card, i) {
+    var keys = Object.keys(BUILTIN_ROLES);
+    var r = BUILTIN_ROLES[keys[i]];
+    if(keys[i] === rkey) {
+      card.style.borderColor = r.badge;
+      card.style.background = '#f0fff4';
+      card.querySelector('div:nth-child(2)').style.color = r.badge;
+    } else {
+      card.style.borderColor = '#ddd';
+      card.style.background = '#fff';
+      card.querySelector('div:nth-child(2)').style.color = '#333';
+    }
+  });
+  // Get current saved perms or use preset
+  var currentPerms = getTeacherPerms(tid) || {};
+  if(currentPerms.builtinRole !== rkey) {
+    // Apply preset
+    currentPerms = {
+      builtinRole: rkey,
+      pages: BUILTIN_ROLES[rkey].pages.slice(),
+      writes: BUILTIN_ROLES[rkey].writes.slice()
+    };
+  }
+  showRoleDetails(tid, rkey, currentPerms);
+}
+
+function showRoleDetails(tid, rkey, perms) {
+  var t = data.teachers.find(function(x){return x.id===tid;});
+  var r = BUILTIN_ROLES[rkey];
+  var html = '<div style="background:#fff;border:2px solid '+r.badge+';border-radius:10px;padding:16px;margin-bottom:14px;">';
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+    +'<span style="font-size:24px;">'+r.icon+'</span>'
+    +'<div><div style="font-weight:700;font-size:14px;color:'+r.badge+';">'+r.label+'</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);">'+r.desc+'</div></div>'
+    +'</div>';
+
+  // Page access list (grouped)
+  html += '<div style="margin-bottom:12px;">';
+  html += '<div style="font-size:12px;font-weight:700;margin-bottom:6px;">📄 পেজ একসেস '+(rkey!=='custom'?'<span style="font-size:11px;font-weight:400;color:var(--text-muted);">(কাস্টমাইজ করতে পারবেন)</span>':'')+'</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
   ALL_PAGES.forEach(function(p) {
-    if(!groups[p.group]) groups[p.group] = [];
-    groups[p.group].push(p);
-  });
-  var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--primary-ultra-light);border-radius:10px;border:1.5px solid var(--primary);">';
-  html += '<div class="user-card-avatar" style="width:44px;height:44px;">'+(t.type==='স্টাফ'?'👤':t.type==='পিয়ন'?'🧹':'👨‍🏫')+'</div>';
-  html += '<div><div style="font-weight:700;font-size:15px;">'+t.name+'</div><div style="font-size:12px;color:var(--text-muted);">'+(t.type||'শিক্ষক')+(t.assignedClass?' — '+t.assignedClass:'')+'</div></div>';
-  html += '<button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="switchPermTab(\'users\')">← ফিরে যান</button></div>';
-
-  // Preset quick-select
-  html += '<div class="perm-section"><div class="perm-section-title">⚡ প্রিসেট রোল (দ্রুত সেট করুন)</div>';
-  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:10px;border:1px solid var(--border);border-radius:0 0 8px 8px;">';
-  Object.keys(ROLE_PRESETS).forEach(function(rname) {
-    var isActive = perms.preset === rname;
-    html += '<button class="btn btn-sm '+(isActive?'btn-primary':'btn-outline')+'" onclick="applyPreset(\''+tid+'\',\''+rname+'\')">'+rname+'</button>';
-  });
-  html += '<button class="btn btn-sm btn-outline" onclick="clearAllPerms(\''+tid+'\')">🚫 সব সরান</button>';
-  html += '<button class="btn btn-sm btn-outline" onclick="setAllPerms(\''+tid+'\')">✅ সব দিন</button>';
-  html += '</div></div>';
-
-  // Page access checkboxes by group
-  html += '<div class="perm-section"><div class="perm-section-title">📄 পেজ একসেস — কোন পেজ দেখতে পারবে</div>';
-  html += '<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:10px;">';
-  var grpOrder = ['সাধারণ','শিক্ষার্থী','শিক্ষক','একাডেমিক','হিসাব','হোস্টেল','অন্যান্য','অ্যাডমিন'];
-  grpOrder.forEach(function(grp) {
-    if(!groups[grp]) return;
-    html += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px;">'+grp+'</div>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-    groups[grp].forEach(function(p) {
-      var checked = perms.pages.indexOf(p.id) > -1;
-      html += '<label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;background:'+(checked?'var(--primary-ultra-light)':'#fafafa')+';border:1px solid '+(checked?'var(--primary)':'#eee')+';cursor:pointer;font-size:12px;user-select:none;" onclick="togglePagePerm(\''+tid+'\',\''+p.id+'\',this)">';
-      html += '<input type="checkbox" '+(checked?'checked':'')+' style="accent-color:var(--primary);" onclick="event.stopPropagation()"> ';
-      html += p.icon+' '+p.label+'</label>';
-    });
-    html += '</div></div>';
+    var checked = (perms.pages||[]).indexOf(p.id) > -1;
+    html += '<label style="display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;border:1px solid '+(checked?r.badge:'#ddd')+';background:'+(checked?'#f0fff4':'#fafafa')+';cursor:pointer;font-size:11px;">'
+      +'<input type="checkbox" data-page="'+p.id+'" '+(checked?'checked':'')+' style="accent-color:'+r.badge+';width:13px;height:13px;" onchange="permPageToggle(\''+tid+'\',\''+p.id+'\',this.checked)">'
+      +p.icon+' '+p.label+'</label>';
   });
   html += '</div></div>';
 
-  // Write permissions
-  html += '<div class="perm-section"><div class="perm-section-title">✏️ লেখার অনুমতি — কী কী করতে পারবে</div>';
-  html += '<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:10px;display:flex;flex-wrap:wrap;gap:6px;">';
+  // Write perms
+  html += '<div><div style="font-size:12px;font-weight:700;margin-bottom:6px;">✏️ কী কী করতে পারবে</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
   ALL_WRITE_PERMS.forEach(function(wp) {
-    var checked = perms.writes.indexOf(wp.id) > -1;
-    html += '<label style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;background:'+(checked?'#d4edda':'#fafafa')+';border:1px solid '+(checked?'#28a745':'#eee')+';cursor:pointer;font-size:12px;user-select:none;" onclick="toggleWritePerm(\''+tid+'\',\''+wp.id+'\',this)">';
-    html += '<input type="checkbox" '+(checked?'checked':'')+' style="accent-color:#28a745;" onclick="event.stopPropagation()"> ';
-    html += wp.icon+' '+wp.label+'</label>';
+    var checked = (perms.writes||[]).indexOf(wp.id) > -1;
+    html += '<label style="display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;border:1px solid '+(checked?'#28a745':'#ddd')+';background:'+(checked?'#d4edda':'#fafafa')+';cursor:pointer;font-size:11px;">'
+      +'<input type="checkbox" data-write="'+wp.id+'" '+(checked?'checked':'')+' style="accent-color:#28a745;width:13px;height:13px;" onchange="permWriteToggle(\''+tid+'\',\''+wp.id+'\',this.checked)">'
+      +wp.icon+' '+wp.label+'</label>';
   });
   html += '</div></div>';
-
-  // Save button
-  html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">';
-  html += '<button class="btn btn-outline" onclick="switchPermTab(\'users\')">বাতিল</button>';
-  html += '<button class="btn btn-primary" onclick="savePermEdit(\''+tid+'\')">💾 সংরক্ষণ করুন</button>';
   html += '</div>';
 
-  document.getElementById('permEditContent').innerHTML = html;
-  // store draft
-  window._permDraft = { tid: tid, pages: perms.pages.slice(), writes: perms.writes.slice(), preset: perms.preset||'' };
+  // Save button
+  html += '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">';
+  html += '<button class="btn btn-outline btn-sm" onclick="removeUserAccess(\''+tid+'\')">🚫 একসেস সরান</button>';
+  html += '<button class="btn btn-primary" onclick="savePermNow(\''+tid+'\',\''+rkey+'\')">💾 সংরক্ষণ করুন</button>';
+  html += '</div>';
+
+  // Store draft
+  window._permDraft = { tid:tid, rkey:rkey, pages:(perms.pages||[]).slice(), writes:(perms.writes||[]).slice() };
+
+  document.getElementById('permDetailArea').innerHTML = html;
 }
 
-function togglePagePerm(tid, pageId, labelEl) {
-  if(!window._permDraft || window._permDraft.tid !== tid) return;
+function permPageToggle(tid, pageId, checked) {
+  if(!window._permDraft) return;
   var arr = window._permDraft.pages;
   var idx = arr.indexOf(pageId);
-  var cb = labelEl.querySelector('input');
-  if(idx > -1) {
-    arr.splice(idx, 1);
-    if(cb) cb.checked = false;
-    labelEl.style.background = '#fafafa';
-    labelEl.style.border = '1px solid #eee';
-  } else {
-    arr.push(pageId);
-    if(cb) cb.checked = true;
-    labelEl.style.background = 'var(--primary-ultra-light)';
-    labelEl.style.border = '1px solid var(--primary)';
-  }
-  window._permDraft.preset = '';
+  if(checked && idx===-1) arr.push(pageId);
+  if(!checked && idx>-1) arr.splice(idx,1);
+  // Mark as custom
+  window._permDraft.rkey = 'custom';
 }
-
-function toggleWritePerm(tid, permId, labelEl) {
-  if(!window._permDraft || window._permDraft.tid !== tid) return;
+function permWriteToggle(tid, permId, checked) {
+  if(!window._permDraft) return;
   var arr = window._permDraft.writes;
   var idx = arr.indexOf(permId);
-  var cb = labelEl.querySelector('input');
-  if(idx > -1) {
-    arr.splice(idx, 1);
-    if(cb) cb.checked = false;
-    labelEl.style.background = '#fafafa';
-    labelEl.style.border = '1px solid #eee';
-  } else {
-    arr.push(permId);
-    if(cb) cb.checked = true;
-    labelEl.style.background = '#d4edda';
-    labelEl.style.border = '1px solid #28a745';
-  }
-  window._permDraft.preset = '';
+  if(checked && idx===-1) arr.push(permId);
+  if(!checked && idx>-1) arr.splice(idx,1);
+  window._permDraft.rkey = 'custom';
 }
-
-function applyPreset(tid, rname) {
-  var preset = ROLE_PRESETS[rname];
-  if(!preset) return;
-  if(!window._permDraft) window._permDraft = { tid:tid, pages:[], writes:[], preset:'' };
-  window._permDraft.pages = preset.pages.slice();
-  window._permDraft.writes = preset.writes.slice();
-  window._permDraft.preset = rname;
-  savePermEdit(tid); // save immediately and re-render
-  openPermEdit(tid);
-  toast('প্রিসেট "'+rname+'" প্রয়োগ হয়েছে ✅');
-}
-
-function clearAllPerms(tid) {
-  if(!confirm('এই ব্যবহারকারীর সব একসেস সরিয়ে দেবেন?')) return;
-  window._permDraft = { tid:tid, pages:[], writes:[], preset:'' };
-  savePermEdit(tid);
-  openPermEdit(tid);
-}
-
-function setAllPerms(tid) {
-  window._permDraft = {
-    tid: tid,
-    pages: ALL_PAGES.map(function(p){ return p.id; }),
-    writes: ALL_WRITE_PERMS.map(function(w){ return w.id; }),
-    preset: 'সব একসেস'
-  };
-  savePermEdit(tid);
-  openPermEdit(tid);
-}
-
-function savePermEdit(tid) {
-  if(!window._permDraft || window._permDraft.tid !== tid) return;
+function savePermNow(tid, rkey) {
+  var draft = window._permDraft;
+  if(!draft || draft.tid !== tid) return;
   saveUserPerms(tid, {
-    pages: window._permDraft.pages,
-    writes: window._permDraft.writes,
-    preset: window._permDraft.preset||''
+    builtinRole: draft.rkey || rkey,
+    pages: draft.pages,
+    writes: draft.writes
   });
+  renderPermUsers();
+  var t = data.teachers.find(function(x){return x.id===tid;});
+  toast((t?t.name:'ব্যবহারকারীর')+' পার্মিশন সংরক্ষিত হয়েছে ✅');
+  switchPermTab('users');
+  renderPermUsers();
+}
+function removeUserAccess(tid) {
+  var t = data.teachers.find(function(x){return x.id===tid;});
+  if(!confirm((t?t.name:'এই ব্যবহারকারীর')+' সব একসেস সরিয়ে দেবেন?')) return;
+  if(data.settings.userPerms) delete data.settings.userPerms[tid];
+  save('settings');
+  renderPermUsers();
+  toast('একসেস সরানো হয়েছে।','error');
+  switchPermTab('users');
   renderPermUsers();
 }
 
-// ---- Access log render ----
+// ---- openPermEdit (from user card click) ----
+function openPermEdit(tid) {
+  document.getElementById('permSection-users').style.display = 'none';
+  document.getElementById('permSection-edit').style.display = '';
+  document.getElementById('permSection-log').style.display = 'none';
+
+  var t = data.teachers.find(function(x){return x.id===tid;});
+  var perms = getTeacherPerms(tid);
+  var currentRole = perms ? perms.builtinRole : '';
+  var teachers = data.teachers||[];
+
+  var html = '<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">'
+    +'<button class="btn btn-outline btn-sm" onclick="switchPermTab(\'users\');renderPermUsers();">← ফিরে যান</button>'
+    +'<div style="font-size:14px;font-weight:700;color:var(--primary);">একসেস সম্পাদনা</div>'
+    +'</div>';
+
+  // User info
+  var avatarEmoji = t && t.type==='স্টাফ'?'👤':t && t.type==='পিয়ন'?'🧹':'👨‍🏫';
+  html += '<div style="background:var(--primary-ultra-light);border:1.5px solid var(--primary);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">'
+    +'<span style="font-size:24px;">'+avatarEmoji+'</span>'
+    +'<div><div style="font-weight:700;font-size:14px;">'+(t?t.name:'?')+'</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);">'+(t?t.type||'শিক্ষক':'')+(t&&t.assignedClass?' — '+t.assignedClass:'')+'</div></div>'
+    +'</div>';
+
+  // Role grid
+  html += '<div style="font-size:12px;font-weight:700;margin-bottom:8px;">ভূমিকা নির্বাচন করুন:</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:16px;" id="roleGrid">';
+  Object.keys(BUILTIN_ROLES).forEach(function(rkey) {
+    var r = BUILTIN_ROLES[rkey];
+    var isActive = currentRole === rkey;
+    html += '<div onclick="selectRole(\''+tid+'\',\''+rkey+'\')" '
+      +'style="padding:10px;border-radius:10px;border:2px solid '+(isActive?r.badge:'#ddd')+';cursor:pointer;transition:.15s;background:'+(isActive?'#f0fff4':'#fff')+';text-align:center;">'
+      +'<div style="font-size:20px;margin-bottom:3px;">'+r.icon+'</div>'
+      +'<div style="font-weight:700;font-size:11px;color:'+(isActive?r.badge:'#333')+';">'+r.label+'</div>'
+      +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px;line-height:1.2;">'+r.desc+'</div>'
+      +'</div>';
+  });
+  html += '</div>';
+  html += '<div id="permDetailArea"></div>';
+
+  document.getElementById('permEditContent').innerHTML = html;
+
+  if(currentRole && perms) {
+    showRoleDetails(tid, currentRole, perms);
+  }
+}
+
+// ---- Access log ----
 function renderAccessLog() {
   var el = document.getElementById('accessLogList');
   if(!el) return;
-  var log = (data.settings.accessLog||[]);
-  if(log.length===0) { el.innerHTML='<p style="color:var(--text-muted);">কোনো লগ নেই।</p>'; return; }
-  el.innerHTML = '<table style="width:100%;border-collapse:collapse;">'+
-    '<thead><tr style="background:var(--primary-ultra-light);font-size:11px;">'+
-    '<th style="padding:6px;text-align:left;">নাম</th><th style="padding:6px;text-align:left;">কাজ</th><th style="padding:6px;text-align:left;">সময়</th></tr></thead><tbody>'+
-    log.map(function(l,i){
-      return '<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'#fff':'#fafafa')+';">'+
-        '<td style="padding:6px;font-weight:600;">'+l.name+'</td>'+
-        '<td style="padding:6px;color:var(--text-muted);">'+l.action+'</td>'+
-        '<td style="padding:6px;font-size:11px;color:var(--text-muted);">'+l.time+'</td>'+
-      '</tr>';
+  var log = data.settings.accessLog||[];
+  if(log.length===0) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">কোনো লগ নেই।</p>'; return; }
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    +'<thead><tr style="background:var(--primary-ultra-light);">'
+    +'<th style="padding:7px;text-align:left;border-bottom:2px solid var(--border);">নাম</th>'
+    +'<th style="padding:7px;text-align:left;border-bottom:2px solid var(--border);">কাজ</th>'
+    +'<th style="padding:7px;text-align:left;border-bottom:2px solid var(--border);">সময়</th>'
+    +'</tr></thead><tbody>'
+    +log.map(function(l,i){
+      return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'">'
+        +'<td style="padding:6px;font-weight:600;">'+l.name+'</td>'
+        +'<td style="padding:6px;color:var(--text-muted);">'+l.action+'</td>'
+        +'<td style="padding:6px;color:var(--text-muted);">'+l.time+'</td>'
+        +'</tr>';
     }).join('')+'</tbody></table>';
 }
 
-// ---- showPage — permission guard ----
-// (existing showPage wrapped with permission check)
-var _originalShowPage = showPage;
-showPage = function(id) {
-  if(currentUser && currentUser.role !== 'admin' && !canAccess(id)) {
-    toast('❌ এই পেজে আপনার একসেস নেই।', 'error');
-    return;
-  }
-  _originalShowPage(id);
-};
-
-// ---- Custom user dashboard (non-admin with page access) ----
+// ---- showCustomUserDash ----
 function showCustomUserDash() {
   hideLoginScreen();
   document.getElementById('sidebar').style.display = 'flex';
   document.getElementById('main').style.display = 'flex';
   var perms = getTeacherPerms(currentUser.id) || { pages:[], writes:[] };
-  // sidebar nav filter
+  var allowedPages = perms.pages||[];
+  // Filter nav items
   document.querySelectorAll('.nav-item').forEach(function(nav) {
     var oc = nav.getAttribute('onclick')||'';
     var m = oc.match(/showPage\('([^']+)'\)/);
     if(m) {
-      var pageId = m[1];
-      nav.style.display = perms.pages.indexOf(pageId) > -1 ? '' : 'none';
+      nav.style.display = allowedPages.indexOf(m[1]) > -1 ? '' : 'none';
     }
   });
-  // first available page
-  var firstPage = perms.pages[0] || 'dashboard';
   init();
+  var firstPage = allowedPages[0] || 'dashboard';
+  // Wrap showPage for this user
+  var rkey = perms.builtinRole;
+  var roleInfo = rkey && BUILTIN_ROLES[rkey] ? BUILTIN_ROLES[rkey] : null;
+  var roleLabel = roleInfo ? roleInfo.icon+' '+roleInfo.label : '';
   showPage(firstPage);
-  // header
   document.getElementById('header').innerHTML =
-    '<div class="header-title" style="font-size:14px;">👤 '+currentUser.name+' &nbsp;<span style="font-size:11px;opacity:.7;font-weight:400;">('+currentUser.type+')</span></div>'+
-    '<div id="headerDate" style="font-size:12px;"></div>'+
-    '<button class="header-btn btn-outline" onclick="doLogout()" style="font-size:12px;">🚪 লগআউট</button>';
+    '<div class="header-title" style="font-size:14px;">'+currentUser.name
+    +' <span style="font-size:11px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;font-weight:400;">'+roleLabel+'</span></div>'
+    +'<div id="headerDate" style="font-size:12px;"></div>'
+    +'<button class="header-btn btn-outline" onclick="doLogout()" style="font-size:12px;">🚪 লগআউট</button>';
   document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bn-BD',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
 }
+
+// ---- showPage permission guard ----
+var _origShowPage = showPage;
+showPage = function(id) {
+  if(currentUser && currentUser.role !== 'admin' && !canAccess(id)) {
+    toast('❌ এই পেজে আপনার একসেস নেই।','error');
+    return;
+  }
+  _origShowPage(id);
+};
 
 
 
