@@ -2398,7 +2398,7 @@ function renderStudents() {
       <td>${renderEditCell(s.id,'name',s.name,'text')}</td>
       <td>${s.father||'-'}</td>
       <td>${renderEditCellSelect(s.id,'cls',s.cls)}</td>
-      <td style="font-family:monospace;font-size:12px;">${mobile||'-'}</td>
+      <td style="font-family:monospace;font-size:12px;">${mobile ? mobile+'&nbsp;<a href="tel:'+mobile+'" style="text-decoration:none;font-size:14px;" title="কল করুন">📞</a>' : '-'}</td>
       <td>${renderEditCell(s.id,'fee',s.fee||0,'number')}</td>
       <td><span class="badge ${due>0?'badge-red':'badge-green'}">${due>0?'৳ '+due.toLocaleString('bn-BD'):'পরিশোধিত'}</span></td>
       <td>
@@ -2764,7 +2764,7 @@ function loadAttendance() {
       const status = saved[s.id]||'';
       const leaveReason = saved[s.id+'_leaveReason']||'';
       const isLeave = status==='ছুটি';
-      const callBtn = s.mobile ? `<a href="tel:${s.mobile}" class="att-call-btn" title="কল করুন">📞 কল</a>` : '';
+      const _mob = getContactMobile(s); const callBtn = _mob ? `<a href="tel:${_mob}" class="att-call-btn" title="কল করুন">📞 কল</a>` : '';
       if(isLeave) {
         return `<div class="att-card" style="background:#fff8e1;border:1.5px solid #c9a227;">
           <div style="font-size:20px;">🏖️</div>
@@ -4056,7 +4056,9 @@ function openStudentProfile(sid) {
           <div><span style="color:var(--text-muted)">মাতার নাম:</span> ${s.mother||'-'}</div>
           <div><span style="color:var(--text-muted)">জন্ম তারিখ:</span> ${s.dob||'-'}</div>
           <div><span style="color:var(--text-muted)">লিঙ্গ:</span> ${s.gender||'-'}</div>
-          <div><span style="color:var(--text-muted)">মোবাইল:</span> ${s.mobile||'-'}</div>
+          <div><span style="color:var(--text-muted)">মোবাইল:</span> ${getContactMobile(s)||'-'}</div>
+          ${s.fatherMobile?`<div><span style="color:var(--text-muted)">পিতার মোবাইল:</span> ${s.fatherMobile}</div>`:''}
+          ${s.motherMobile?`<div><span style="color:var(--text-muted)">মাতার মোবাইল:</span> ${s.motherMobile}</div>`:''}
           <div><span style="color:var(--text-muted)">ঠিকানা:</span> ${s.address||'-'}</div>
           <div><span style="color:var(--text-muted)">ভর্তি তারিখ:</span> ${s.admDate||'-'}</div>
           <div><span style="color:var(--text-muted)">মাসিক বেতন:</span> ৳ ${Number(s.fee||0).toLocaleString()}</div>
@@ -5940,7 +5942,7 @@ function loadTeacherAtt() {
       ⚠️ <b>টানা ২+ দিন অনুপস্থিত:</b> ${absentAlert.map(s=>`
         <span style="display:inline-flex;align-items:center;gap:6px;background:var(--danger-light);border-radius:6px;padding:3px 10px;margin:2px;">
           ⚠️ ${s.name}
-          ${s.mobile?`<a href="tel:${s.mobile}" style="background:var(--danger);color:#fff;border-radius:4px;padding:2px 8px;text-decoration:none;font-size:11px;">📞 ${s.mobile}</a>`:''}
+          ${getContactMobile(s)?`<a href="tel:${getContactMobile(s)}" style="background:var(--danger);color:#fff;border-radius:4px;padding:2px 8px;text-decoration:none;font-size:11px;">📞 ${getContactMobile(s)}</a>`:''}
         </span>`).join('')}
     </div>`;
   }
@@ -5949,8 +5951,8 @@ function loadTeacherAtt() {
     const isAbsentAlert = absentAlert.find(a=>a.id===s.id);
     const isLeave = status==='ছুটি';
     const leaveReason = saved[s.id+'_leaveReason']||'';
-    const callBtn = s.mobile
-      ? `<a href="tel:${s.mobile}" class="att-call-btn" title="অভিভাবকে কল করুন">📞 কল</a>`
+    const callBtn = getContactMobile(s)
+      ? `<a href="tel:${getContactMobile(s)}" class="att-call-btn" title="অভিভাবকে কল করুন">📞 কল</a>`
       : '';
     if(isLeave) {
       return `<div class="att-card" style="background:#fff8e1;border:1.5px solid #c9a227;">
@@ -5966,7 +5968,7 @@ function loadTeacherAtt() {
       <div style="flex:1">
         <div class="att-name">${s.name} ${isAbsentAlert?'⚠️':''}</div>
         <div class="text-muted">রোল: ${s.roll}</div>
-        ${isAbsentAlert&&s.mobile?`<a href="tel:${s.mobile}" style="font-size:11px;color:var(--danger);font-weight:600;">📞 ${s.mobile} (অভিভাবক)</a>`:''}
+        ${isAbsentAlert&&getContactMobile(s)?`<a href="tel:${getContactMobile(s)}" style="font-size:11px;color:var(--danger);font-weight:600;">📞 ${getContactMobile(s)} (অভিভাবক)</a>`:''}
       </div>
       <div class="att-toggle" style="display:flex;gap:4px;align-items:center;">
         <button class="att-btn ${status==='উপস্থিত'?'active-present':'present'}" onclick="setAtt('${key}','${s.id}','উপস্থিত',this)">উপ.</button>
