@@ -464,6 +464,56 @@
         </div>
       </div>
       <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Dashboard Charts Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;" id="dashChartsRow">
+        <!-- Attendance Donut -->
+        <div class="card" style="min-height:220px;">
+          <div class="card-header"><span class="card-title">📊 হাজিরা চিত্র (আজ)</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+            <div style="position:relative;width:130px;height:130px;">
+              <svg viewBox="0 0 36 36" style="width:130px;height:130px;transform:rotate(-90deg);">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e8f5ee" stroke-width="3.5"/>
+                <circle id="attDonutPresent" cx="18" cy="18" r="15.9" fill="none" stroke="var(--primary)" stroke-width="3.5" stroke-dasharray="0 100"/>
+                <circle id="attDonutAbsent" cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"/>
+              </svg>
+              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+                <div id="attDonutPct" style="font-size:20px;font-weight:700;color:var(--primary);">-</div>
+                <div style="font-size:9px;color:var(--text-muted);">উপস্থিতি</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:12px;">
+              <span><span style="display:inline-block;width:10px;height:10px;background:var(--primary);border-radius:50%;margin-right:4px;"></span><span id="attLegPresent">উপস্থিত: -</span></span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:50%;margin-right:4px;"></span><span id="attLegAbsent">অনুপস্থিত: -</span></span>
+            </div>
+          </div>
+        </div>
+        <!-- Fee Bar Chart -->
+        <div class="card" style="min-height:220px;">
+          <div class="card-header"><span class="card-title">💰 ফি আদায় (শেষ ৬ মাস)</span></div>
+          <div class="card-body" style="display:flex;align-items:flex-end;gap:6px;height:160px;padding-bottom:24px;position:relative;">
+            <div id="feeBarChart" style="display:flex;align-items:flex-end;gap:6px;width:100%;height:100%;"></div>
+          </div>
+        </div>
+        <!-- Class wise students pie -->
+        <div class="card" style="min-height:220px;">
+          <div class="card-header"><span class="card-title">👥 শ্রেণিভিত্তিক শিক্ষার্থী</span></div>
+          <div class="card-body" id="classBarChart" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:170px;"></div>
+        </div>
+      </div>
+
+      <!-- Birthday + Pending Leave row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" id="dashAlertRow">
+        <div class="card" id="dashBirthdayCard">
+          <div class="card-header"><span class="card-title">🎂 আজকের জন্মদিন</span></div>
+          <div class="card-body" id="dashBirthdayList" style="font-size:13px;">কোনো জন্মদিন নেই আজ।</div>
+        </div>
+        <div class="card" id="dashPendingLeaveCard" style="cursor:pointer;" onclick="showPage('leave')">
+          <div class="card-header"><span class="card-title">⏳ অনুমোদন বাকি</span></div>
+          <div class="card-body" id="dashPendingLeaveList" style="font-size:13px;">কোনো আবেদন নেই।</div>
+        </div>
+      </div>
+
       <div class="dashboard-grid">
         <div class="card">
           <div class="card-header"><span class="card-title">⚡ দ্রুত কাজ</span></div>
@@ -1034,25 +1084,168 @@
 
     <!-- HOSTEL PAGE -->
     <div id="page-hostel" class="page">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="responsive-grid-2">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">🏠 রুম ব্যবস্থাপনা</span>
-            <button class="btn btn-primary btn-sm" onclick="openHostelRoomModal()">+ নতুন রুম</button>
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="hostelTab-rooms" onclick="switchHostelTab('rooms')">🏠 রুম</button>
+        <button class="btn btn-outline" id="hostelTab-residents" onclick="switchHostelTab('residents')">👤 আবাসিক তালিকা</button>
+        <button class="btn btn-outline" id="hostelTab-meal" onclick="switchHostelTab('meal')">🍽️ খাবার রুটিন</button>
+        <button class="btn btn-outline" id="hostelTab-fee" onclick="switchHostelTab('fee')">💰 হোস্টেল ফি</button>
+        <button class="btn btn-outline" id="hostelTab-leave" onclick="switchHostelTab('leave')">🏖️ ছুটি ট্র্যাকার</button>
+      </div>
+
+      <!-- Rooms Tab -->
+      <div id="hostelSection-rooms">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🏠 রুম তালিকা</span>
+              <button class="btn btn-primary btn-sm" onclick="openHostelRoomModal()">+ নতুন রুম</button>
+            </div>
+            <div class="card-body" id="hostelRoomList">লোড হচ্ছে...</div>
           </div>
-          <div class="card-body" id="hostelRoomList">লোড হচ্ছে...</div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">📊 সারসংক্ষেপ</span></div>
+            <div class="card-body" id="hostelSummary">লোড হচ্ছে...</div>
+          </div>
         </div>
+      </div>
+
+      <!-- Residents Tab -->
+      <div id="hostelSection-residents" style="display:none;">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">👤 রুম বরাদ্দ</span>
-            <button class="btn btn-accent btn-sm" onclick="openAssignRoomModal()">+ বরাদ্দ দিন</button>
+            <span class="card-title">👤 আবাসিক শিক্ষার্থী</span>
+            <button class="btn btn-accent btn-sm" onclick="openAssignRoomModal()">+ রুম বরাদ্দ</button>
           </div>
           <div class="card-body" id="hostelAssignList">লোড হচ্ছে...</div>
         </div>
       </div>
+
+      <!-- Meal Tab -->
+      <div id="hostelSection-meal" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🍽️ সাপ্তাহিক খাবার রুটিন</span>
+              <button class="btn btn-primary btn-sm" onclick="saveMealRoutine()">💾 সেভ করুন</button>
+            </div>
+            <div class="card-body">
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;" id="mealRoutineTable">
+                  <thead>
+                    <tr>
+                      <th style="background:var(--primary);color:#fff;padding:8px;text-align:left;min-width:80px;">দিন</th>
+                      <th style="background:var(--primary);color:#fff;padding:8px;">সকাল</th>
+                      <th style="background:var(--primary);color:#fff;padding:8px;">দুপুর</th>
+                      <th style="background:var(--primary);color:#fff;padding:8px;">রাত</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mealRoutineBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">🍽️ আজকের মেনু</span></div>
+            <div class="card-body" id="todayMealMenu" style="font-size:13px;">লোড হচ্ছে...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">ℹ️ খাবার রুটিন দেখার নির্দেশনা</span></div>
+          <div class="card-body" style="font-size:13px;color:var(--text-muted);">
+            অভিভাবক পোর্টালে শিক্ষার্থীর unique code দিয়ে login করলে এই খাবার রুটিন দেখা যাবে।
+            ছুটিতে থাকলে meal স্বয়ংক্রিয়ভাবে বন্ধ দেখাবে।
+          </div>
+        </div>
+      </div>
+
+      <!-- মাসিক meal cost calculation -->
       <div class="card">
-        <div class="card-header"><span class="card-title">📊 হোস্টেল সারসংক্ষেপ</span></div>
-        <div class="card-body" id="hostelSummary">লোড হচ্ছে...</div>
+        <div class="card-header">
+          <span class="card-title">💰 মাসিক খাবার খরচ (Meal-based হিসাব)</span>
+          <button class="btn btn-primary btn-sm" onclick="openMealCostModal()">+ খরচ এন্ট্রি</button>
+        </div>
+        <div class="card-body">
+          <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;">
+            💡 Meal-based শিক্ষার্থীদের জন্য: মাসের শেষে মোট খরচ ভাগ করে প্রতিজনের বিল তৈরি হয়।
+            Fixed-fee শিক্ষার্থীরা আলাদা।
+          </div>
+          <!-- Month selector -->
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+            <input id="mealCostMonth" type="month" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;" onchange="renderMealCostSummary()">
+            <span style="font-size:13px;color:var(--text-muted);">মাস নির্বাচন করুন</span>
+          </div>
+          <div id="mealCostSummary">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Fee Tab -->
+      <div id="hostelSection-fee" style="display:none;">
+        <div class="card mb-16">
+          <div class="card-header">
+            <span class="card-title">💰 হোস্টেল ফি নির্ধারণ ও আদায়</span>
+            <button class="btn btn-primary btn-sm" onclick="openHostelFeeModal()">+ ফি নিন</button>
+          </div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
+              <div style="background:var(--primary-ultra-light);padding:14px;border-radius:8px;text-align:center;">
+                <div style="font-size:11px;color:var(--text-muted);">মাসিক হোস্টেল ফি</div>
+                <input id="hostelFeeAmount" type="number" placeholder="0" style="font-size:20px;font-weight:700;color:var(--primary);border:none;background:none;text-align:center;width:100%;" onchange="saveHostelFeeRate()">
+                <div style="font-size:10px;color:var(--text-muted);">টাকা/মাস (প্রতি শিক্ষার্থী)</div>
+              </div>
+              <div style="background:#e8f5e9;padding:14px;border-radius:8px;text-align:center;">
+                <div style="font-size:11px;color:var(--text-muted);">এ মাসে আদায়</div>
+                <div id="hostelFeeCollected" style="font-size:20px;font-weight:700;color:#2e7d32;">৳ ০</div>
+              </div>
+              <div style="background:#fff3e0;padding:14px;border-radius:8px;text-align:center;">
+                <div style="font-size:11px;color:var(--text-muted);">মোট বকেয়া</div>
+                <div id="hostelFeeDue" style="font-size:20px;font-weight:700;color:#e65100;">৳ ০</div>
+              </div>
+            </div>
+            <div id="hostelFeeList" style="overflow-x:auto;">লোড হচ্ছে...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leave Tracker Tab -->
+      <div id="hostelSection-leave" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏖️ হোস্টেল ছুটি ট্র্যাকার</span>
+            <button class="btn btn-primary btn-sm" onclick="openHostelLeaveModal()">+ ছুটি রেকর্ড</button>
+          </div>
+          <div class="card-body">
+            <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;">
+              🍽️ ছুটিতে থাকা শিক্ষার্থীদের খাবার স্বয়ংক্রিয়ভাবে বন্ধ হয়ে যাবে।
+              অভিভাবক পোর্টালেও এটি দেখা যাবে।
+            </div>
+            <div id="hostelLeaveList">লোড হচ্ছে...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meal Cost Modal -->
+    <div id="mealCostModal" class="modal-overlay">
+      <div class="modal" style="max-width:500px;">
+        <div class="modal-header"><span class="modal-title">🍽️ মাসিক খাবার খরচ এন্ট্রি</span><button class="modal-close" onclick="closeModal('mealCostModal')">✕</button></div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group"><label>মাস</label><input id="mcMonth" type="month" style="font-family:inherit;"></div>
+            <div class="form-group"><label>মোট বাজার খরচ (৳)</label><input id="mcMarket" type="number" placeholder="০" min="0"></div>
+            <div class="form-group"><label>রাঁধুনি বেতন (৳)</label><input id="mcCook" type="number" placeholder="০" min="0"></div>
+            <div class="form-group"><label>Helper বেতন (৳)</label><input id="mcHelper" type="number" placeholder="০" min="0"></div>
+            <div class="form-group"><label>অন্যান্য খরচ (৳)</label><input id="mcOther" type="number" placeholder="০" min="0"></div>
+            <div class="form-group"><label>নোট</label><input id="mcNote" type="text" placeholder="ঐচ্ছিক"></div>
+          </div>
+          <div style="background:var(--primary-ultra-light);border-radius:8px;padding:12px;margin-top:8px;" id="mcCalculation">
+            খরচের পরিমাণ দিলে হিসাব দেখাবে...
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('mealCostModal')">বাতিল</button>
+          <button class="btn btn-primary" onclick="saveMealCost()">✅ সেভ করুন</button>
+        </div>
       </div>
     </div>
 
@@ -1248,6 +1441,59 @@
         <div class="form-group"><label>মাতার NID নম্বর</label><input id="sMotherNID" type="text" style="font-family:monospace;" placeholder="মাতার জাতীয় পরিচয়পত্র নম্বর"></div>
         <div class="form-group"><label>ভর্তি তারিখ</label><input id="sAdmDate" type="date"></div>
         <div class="form-group"><label>মাসিক বেতন (৳)</label><input id="sFee" type="number" placeholder="০"></div>
+
+        <!-- ===== হোস্টেল সেকশন ===== -->
+        <div class="form-group full" style="background:var(--primary-ultra-light);border:1.5px solid var(--border);border-radius:10px;padding:14px;margin:4px 0;">
+          <div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:12px;">🏠 হোস্টেল সুবিধা</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+            <div class="form-group" style="margin:0;">
+              <label style="font-size:12px;">হোস্টেলে থাকবে?</label>
+              <select id="sHostel" onchange="onHostelChange()" style="font-family:inherit;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;width:100%;">
+                <option value="না">না</option>
+                <option value="হ্যাঁ">হ্যাঁ</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="sHostelFeeGroup" style="margin:0;display:none;">
+              <label style="font-size:12px;">হোস্টেল ফি (৳/মাস)</label>
+              <input id="sHostelFee" type="number" placeholder="০" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;width:100%;font-family:inherit;box-sizing:border-box;">
+              <small style="font-size:10px;color:var(--text-muted);">Settings থেকে ডিফল্ট: <span id="sHostelFeeDefault"></span></small>
+            </div>
+
+            <div class="form-group" id="sMealGroup" style="margin:0;display:none;">
+              <label style="font-size:12px;">হোস্টেলে খাবার খাবে?</label>
+              <select id="sMeal" onchange="onMealChange()" style="font-family:inherit;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;width:100%;">
+                <option value="না">না</option>
+                <option value="হ্যাঁ">হ্যাঁ</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="sMealChargeGroup" style="margin:0;display:none;">
+              <label style="font-size:12px;">খাবার চার্জের ধরন</label>
+              <select id="sMealType" onchange="onMealTypeChange()" style="font-family:inherit;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;width:100%;">
+                <option value="fixed">নির্ধারিত (Fixed)</option>
+                <option value="meal">মিল হিসেবে (Meal-based)</option>
+              </select>
+            </div>
+
+          </div>
+
+          <!-- Fixed meal fee -->
+          <div id="sMealFixedGroup" style="margin-top:10px;display:none;">
+            <label style="font-size:12px;">নির্ধারিত খাবার চার্জ (৳/মাস)</label>
+            <input id="sMealFixed" type="number" placeholder="০" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;box-sizing:border-box;margin-top:4px;">
+          </div>
+
+          <!-- Meal-based খাবার চার্জ — আলাদাভাবে bill হবে -->
+          <div id="sMealBasedInfo" style="margin-top:10px;display:none;background:#fff;border-radius:8px;padding:10px;font-size:12px;color:var(--text-muted);">
+            <div style="font-weight:700;color:var(--primary);margin-bottom:4px;">ℹ️ Meal-based চার্জ</div>
+            প্রতি মাসে: (বাজার খরচ + রাঁধুনি/helper বেতন) ÷ আবাসিক শিক্ষার্থী সংখ্যা।
+            হোস্টেল পেজ থেকে মাসিক cost entry করলে প্রত্যেকের ভাগ স্বয়ংক্রিয়ভাবে হিসাব হবে।
+          </div>
+        </div>
+        <!-- ===== হোস্টেল সেকশন শেষ ===== -->
+
         <div class="form-group full">
           <label>🪪 জন্ম নিবন্ধন নম্বর</label>
           <div style="display:flex;gap:8px;align-items:center;">
@@ -1965,7 +2211,7 @@ var data = {
   results: [], finance: [], notices: [],
   leaves: [], routine: [], syllabus: [],
   feePayments: [], staffCheckins: [], payrollAdj: [], stock: [], letters: [], onlinePayments: [],
-  studentRemarks: [], hostelRooms: [], hostelAssignments: [],
+  studentRemarks: [], hostelRooms: [], hostelAssignments: [], hostelMealRoutine: {}, hostelFees: [], hostelLeaves: [], hostelMealCosts: [],
 };
 
 // পুরনো রেকর্ডে ইউনিক কোড না থাকলে assign করো
@@ -2016,7 +2262,7 @@ function migrateOldCodes() {
 // Firebase থেকে ডেটা লোড করুন
 async function loadFromFirebase() {
   showLoading(true);
-  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments'];
+  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts'];
   for(const k of keys) {
     try {
       const snap = await db.collection('madrasa').doc(k).get();
@@ -2261,12 +2507,101 @@ function renderDashboard() {
       '<div class="stat-icon gold">💳</div><div><div class="stat-label">এ মাসের ফি আদায়</div>'+
       '<div class="stat-value">৳ '+monthlyFeePaid.toLocaleString()+'</div>'+
       '<div style="margin-top:6px;background:#ddd;border-radius:4px;height:6px;"><div style="background:#c9a227;width:'+feePct+'%;height:100%;border-radius:4px;transition:.3s;"></div></div>'+
-      '<div class="stat-sub">লক্ষ্য: ৳ '+monthlyFeeTarget.toLocaleString()+'</div></div></div>'+
-    (pendingLeaves>0 ? '<div class="stat-card" style="cursor:pointer;background:#fff8e1;" onclick="showPage(\'leave\')">'+
-      '<div class="stat-icon" style="background:#fff3cd;">⏳</div><div><div class="stat-label">ছুটির আবেদন</div><div class="stat-value" style="color:#d97706;">'+pendingLeaves+'</div><div class="stat-sub">অনুমোদন বাকি</div></div></div>' : '')+
-    (birthdays.length>0 ? '<div class="stat-card" style="background:#fff0f6;">'+
-      '<div class="stat-icon" style="background:#ffe4f0;">🎂</div><div><div class="stat-label">আজকের জন্মদিন</div><div class="stat-value" style="color:#e91e8c;">'+birthdays.length+'</div>'+
-      '<div class="stat-sub">'+birthdays.slice(0,2).map(function(s){ return s.name; }).join(', ')+(birthdays.length>2?' ...':'')+ '</div></div></div>' : '');
+      '<div class="stat-sub">লক্ষ্য: ৳ '+monthlyFeeTarget.toLocaleString()+'</div></div></div>';
+
+  // ---- CHARTS ----
+  // Attendance Donut
+  var circumference = 100;
+  var presentDash = attTotal>0 ? (presentToday/attTotal*circumference).toFixed(1) : 0;
+  var absentDash  = attTotal>0 ? (absentToday/attTotal*circumference).toFixed(1) : 0;
+  var el1=document.getElementById('attDonutPresent');
+  var el2=document.getElementById('attDonutAbsent');
+  var el3=document.getElementById('attDonutPct');
+  var el4=document.getElementById('attLegPresent');
+  var el5=document.getElementById('attLegAbsent');
+  if(el1) el1.setAttribute('stroke-dasharray', presentDash+' '+(circumference-presentDash));
+  if(el2) { el2.setAttribute('stroke-dasharray', absentDash+' '+(circumference-absentDash)); el2.setAttribute('stroke-dashoffset', -parseFloat(presentDash)+''); }
+  if(el3) el3.textContent = attTotal>0 ? attPct+'%' : '-';
+  if(el4) el4.textContent = 'উপস্থিত: '+presentToday;
+  if(el5) el5.textContent = 'অনুপস্থিত: '+absentToday;
+
+  // Fee Bar Chart (last 6 months)
+  var feeBar = document.getElementById('feeBarChart');
+  if(feeBar) {
+    var months6 = [];
+    for(var mi=5;mi>=0;mi--) {
+      var d=new Date(); d.setMonth(d.getMonth()-mi);
+      var mkey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      var label=['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টে','অক্টো','নভে','ডিসে'][d.getMonth()];
+      var amt=(data.feePayments||[]).filter(function(p){ return (p.date||'').slice(0,7)===mkey; }).reduce(function(a,b){ return a+Number(b.amount); },0);
+      months6.push({label:label,amt:amt,mkey:mkey});
+    }
+    var maxAmt = Math.max(1, Math.max.apply(null,months6.map(function(m){ return m.amt; })));
+    feeBar.innerHTML = months6.map(function(m,i){
+      var pct = Math.round(m.amt/maxAmt*100);
+      var isThis = m.mkey===monthStr;
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">'+
+        '<div style="font-size:9px;color:var(--text-muted);font-weight:'+(isThis?'700':'400')+';">৳'+( m.amt>=1000?(m.amt/1000).toFixed(1)+'k':m.amt)+'</div>'+
+        '<div style="width:100%;background:'+(isThis?'var(--primary)':'var(--primary-light)')+';border-radius:4px 4px 0 0;height:'+(Math.max(4,pct*1.3))+'px;transition:.4s;opacity:'+(isThis?'1':'0.65')+';"></div>'+
+        '<div style="font-size:9px;color:var(--text-muted);">'+m.label+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Class bar chart
+  var clsBar = document.getElementById('classBarChart');
+  if(clsBar) {
+    var classes = data.settings.classes||[];
+    var clsCounts = classes.map(function(c){ return {cls:c,cnt:data.students.filter(function(s){ return s.cls===c; }).length}; });
+    var maxCnt = Math.max(1, Math.max.apply(null,clsCounts.map(function(x){ return x.cnt; })));
+    var colors = ['var(--primary)','#2563ab','#7c3aed','#d97706','#dc2626','#0891b2','#059669'];
+    clsBar.innerHTML = clsCounts.map(function(x,i){
+      var pct = Math.round(x.cnt/maxCnt*100);
+      return '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<div style="width:60px;font-size:11px;color:var(--text-muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+x.cls+'</div>'+
+        '<div style="flex:1;background:#f0f0f0;border-radius:4px;height:16px;">'+
+          '<div style="width:'+pct+'%;background:'+colors[i%colors.length]+';height:100%;border-radius:4px;transition:.4s;min-width:4px;"></div>'+
+        '</div>'+
+        '<div style="width:24px;font-size:11px;font-weight:700;color:var(--primary);">'+x.cnt+'</div>'+
+      '</div>';
+    }).join('')||'<p style="color:var(--text-muted);font-size:12px;">শ্রেণি নেই।</p>';
+  }
+
+  // Birthday card
+  var bdList = document.getElementById('dashBirthdayList');
+  if(bdList) {
+    if(birthdays.length===0) {
+      bdList.innerHTML='<div style="color:var(--text-muted);text-align:center;padding:12px;">🎂 আজ কোনো জন্মদিন নেই।</div>';
+    } else {
+      bdList.innerHTML = birthdays.map(function(s){
+        var age = s.dob ? (new Date().getFullYear()-new Date(s.dob).getFullYear()) : '';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">'+
+          '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e91e8c,#ff6b9d);display:flex;align-items:center;justify-content:center;font-size:16px;">🎂</div>'+
+          '<div><div style="font-weight:600;font-size:13px;">'+s.name+'</div>'+
+          '<div style="font-size:11px;color:var(--text-muted);">'+s.cls+(age?' • '+age+' বছর':'')+'</div></div>'+
+          (getContactMobile(s)?'<a href="tel:'+getContactMobile(s)+'" style="margin-left:auto;font-size:20px;text-decoration:none;">📞</a>':'')+'</div>';
+      }).join('');
+    }
+  }
+
+  // Pending leave card
+  var plList = document.getElementById('dashPendingLeaveList');
+  if(plList) {
+    var pendingLeaveItems = (data.leaves||[]).filter(function(l){ return l.status==='অপেক্ষমাণ'||l.status==='pending'; });
+    if(pendingLeaveItems.length===0) {
+      plList.innerHTML='<div style="color:var(--text-muted);text-align:center;padding:12px;">✅ কোনো আবেদন অনুমোদন বাকি নেই।</div>';
+    } else {
+      plList.innerHTML = pendingLeaveItems.slice(0,4).map(function(l){
+        var s = data.students.find(function(x){ return x.id===l.studentId; })||data.teachers.find(function(x){ return x.id===l.studentId; });
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">'+
+          '<div style="width:28px;height:28px;border-radius:50%;background:#fff3cd;display:flex;align-items:center;justify-content:center;font-size:14px;">⏳</div>'+
+          '<div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+(s?s.name:'অজানা')+'</div>'+
+          '<div style="font-size:11px;color:var(--text-muted);">'+(l.reason||'').slice(0,30)+'</div></div>'+
+          '<span style="background:#fff3cd;color:#92400e;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;">অপেক্ষমাণ</span></div>';
+      }).join('')+(pendingLeaveItems.length>4?'<div style="text-align:center;font-size:12px;color:var(--primary);margin-top:6px;">আরো '+(pendingLeaveItems.length-4)+' টি →</div>':'');
+    }
+  }
+
   // Recent notices
   const rn = document.getElementById('recentNotices');
   if(data.notices.length===0) { rn.innerHTML='<p class="text-muted">কোনো বিজ্ঞপ্তি নেই।</p>'; }
@@ -2540,11 +2875,24 @@ function addStudent() {
     fee:document.getElementById('sFee').value||0, note:document.getElementById('sNote').value,
     roll: Number(roll),
     photo: document.getElementById('sPhotoData').value||'',
-    birthReg: document.getElementById('sBirthReg')?.value||''
+    birthReg: document.getElementById('sBirthReg')?.value||'',
+    hostel: document.getElementById('sHostel').value||'না',
+    hostelFee: document.getElementById('sHostel').value==='হ্যাঁ' ? (parseFloat(document.getElementById('sHostelFee').value)||0) : 0,
+    meal: document.getElementById('sMeal')&&document.getElementById('sHostel').value==='হ্যাঁ' ? document.getElementById('sMeal').value : 'না',
+    mealType: document.getElementById('sMealType')&&document.getElementById('sMeal').value==='হ্যাঁ' ? document.getElementById('sMealType').value : 'fixed',
+    mealFee: document.getElementById('sMealFixed')&&document.getElementById('sMeal').value==='হ্যাঁ'&&document.getElementById('sMealType').value==='fixed' ? (parseFloat(document.getElementById('sMealFixed').value)||0) : 0
   };
+  // হোস্টেলে থাকলে auto-assign করি (রুম পরে দেওয়া যাবে)
+  if(student.hostel==='হ্যাঁ') {
+    if(!data.hostelAssignments) data.hostelAssignments = [];
+    data.hostelAssignments.push({id:'ha_'+Date.now(), studentId:student.id, roomId:'', date:student.admDate||new Date().toISOString().split('T')[0], active:true, pendingRoom:true});
+    save('hostelAssignments');
+  }
   data.students.push(student); save('students');
   closeModal('addStudentModal');
-  ['sName','sNameEn','sFather','sFatherEn','sFatherNID','sMother','sMotherEn','sMotherNID','sDOB','sMobile','sFatherMobile','sMotherMobile','sAddress','sFee','sNote','sRoll','sBirthReg'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['sName','sNameEn','sFather','sFatherEn','sFatherNID','sMother','sMotherEn','sMotherNID','sDOB','sMobile','sFatherMobile','sMotherMobile','sAddress','sFee','sNote','sRoll','sBirthReg','sHostelFee','sMealFixed'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('sHostel').value='না';
+  onHostelChange();
   document.getElementById('sBlood').value='';
   document.getElementById('sCodePreview').value='';
   document.getElementById('sPhotoData').value='';
@@ -2988,95 +3336,536 @@ function copyAllNumbers() {
 }
 
 // ===================== HOSTEL =====================
+function switchHostelTab(tab) {
+  ['rooms','residents','meal','fee','leave'].forEach(function(t) {
+    var sec = document.getElementById('hostelSection-'+t);
+    var btn = document.getElementById('hostelTab-'+t);
+    if(sec) sec.style.display = t===tab ? '' : 'none';
+    if(btn) { btn.className = t===tab ? 'btn btn-primary' : 'btn btn-outline'; }
+  });
+  if(tab==='rooms') renderHostelRooms();
+  if(tab==='residents') renderHostelResidents();
+  if(tab==='meal') renderMealRoutine();
+  if(tab==='fee') renderHostelFee();
+  if(tab==='leave') renderHostelLeave();
+}
 function renderHostelPage() {
+  switchHostelTab('rooms');
+}
+
+// --- ROOMS ---
+function renderHostelRooms() {
   var rooms = data.hostelRooms||[];
   var assignments = data.hostelAssignments||[];
-  // Room list
   var roomHtml = rooms.length===0 ? '<p style="color:var(--text-muted);">কোনো রুম নেই। নতুন রুম যোগ করুন।</p>' :
     '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
-    '<thead><tr><th style="background:var(--primary);color:#fff;padding:8px;">রুম নং</th><th style="background:var(--primary);color:#fff;padding:8px;">ধরন</th><th style="background:var(--primary);color:#fff;padding:8px;">ধারণক্ষমতা</th><th style="background:var(--primary);color:#fff;padding:8px;">বর্তমান</th><th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th></tr></thead><tbody>'+
-    rooms.map(function(r){
+    '<thead><tr>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">রুম নং</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">ধরন</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">ধারণক্ষমতা</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">বর্তমান</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th>'+
+    '</tr></thead><tbody>'+
+    rooms.map(function(r) {
       var occupied = assignments.filter(function(a){ return a.roomId===r.id&&a.active; }).length;
-      return '<tr><td style="padding:7px;text-align:center;font-weight:700;">'+r.number+'</td>'+
-        '<td style="padding:7px;text-align:center;">'+r.type+'</td>'+
-        '<td style="padding:7px;text-align:center;">'+r.capacity+'</td>'+
-        '<td style="padding:7px;text-align:center;">'+
-          '<span class="badge '+( occupied>=r.capacity?'badge-red':'badge-green')+'">'+occupied+'/'+r.capacity+'</span></td>'+
-        '<td style="padding:7px;text-align:center;">'+
-        '<button class="btn btn-danger btn-sm" onclick="deleteHostelRoom(\''+r.id+'\')">✕</button></td></tr>';
+      var full = occupied >= r.capacity;
+      return '<tr>'+
+        '<td style="padding:8px;text-align:center;font-weight:700;font-size:15px;">'+r.number+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+r.type+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+r.capacity+' জন</td>'+
+        '<td style="padding:8px;text-align:center;"><span class="badge '+(full?'badge-red':'badge-green')+'">'+occupied+'/'+r.capacity+'</span></td>'+
+        '<td style="padding:8px;text-align:center;">'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteHostelRoom(this.dataset.id)" data-id="'+r.id+'">✕</button>'+
+        '</td></tr>';
     }).join('')+
     '</tbody></table></div>';
   document.getElementById('hostelRoomList').innerHTML = roomHtml;
-  // Assignment list
-  var assignHtml = assignments.filter(function(a){ return a.active; }).length===0 ? '<p style="color:var(--text-muted);">কোনো বরাদ্দ নেই।</p>' :
-    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
-    '<thead><tr><th style="background:var(--primary);color:#fff;padding:8px;">শিক্ষার্থী</th><th style="background:var(--primary);color:#fff;padding:8px;">শ্রেণি</th><th style="background:var(--primary);color:#fff;padding:8px;">রুম</th><th style="background:var(--primary);color:#fff;padding:8px;">তারিখ</th><th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th></tr></thead><tbody>'+
-    assignments.filter(function(a){ return a.active; }).map(function(a){
-      var s = data.students.find(function(x){ return x.id===a.studentId; });
-      var r = rooms.find(function(x){ return x.id===a.roomId; });
-      return '<tr><td style="padding:7px;">'+( s?s.name:'অজানা')+'</td>'+
-        '<td style="padding:7px;text-align:center;">'+( s?s.cls:'' )+'</td>'+
-        '<td style="padding:7px;text-align:center;">'+( r?r.number:'অজানা')+'</td>'+
-        '<td style="padding:7px;text-align:center;">'+a.date+'</td>'+
-        '<td style="padding:7px;text-align:center;"><button class="btn btn-danger btn-sm" onclick="removeHostelAssignment(\''+a.id+'\')">✕ সরান</button></td></tr>';
-    }).join('')+'</tbody></table></div>';
-  document.getElementById('hostelAssignList').innerHTML = assignHtml;
   // Summary
   var totalCap = rooms.reduce(function(a,r){ return a+Number(r.capacity||0); },0);
   var totalOcc = assignments.filter(function(a){ return a.active; }).length;
   document.getElementById('hostelSummary').innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">'+
-    '<div style="text-align:center;padding:16px;background:var(--primary-ultra-light);border-radius:8px;"><div style="font-size:22px;font-weight:700;color:var(--primary);">'+rooms.length+'</div><div style="font-size:12px;color:var(--text-muted);">মোট রুম</div></div>'+
-    '<div style="text-align:center;padding:16px;background:#e8f5e9;border-radius:8px;"><div style="font-size:22px;font-weight:700;color:#2e7d32;">'+totalOcc+'</div><div style="font-size:12px;color:var(--text-muted);">বর্তমান আবাসিক</div></div>'+
-    '<div style="text-align:center;padding:16px;background:#fff3e0;border-radius:8px;"><div style="font-size:22px;font-weight:700;color:#e65100;">'+Math.max(0,totalCap-totalOcc)+'</div><div style="font-size:12px;color:var(--text-muted);">খালি আসন</div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:10px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--primary-ultra-light);border-radius:8px;">'+
+      '<span>🏠 মোট রুম</span><strong>'+rooms.length+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#e8f5e9;border-radius:8px;">'+
+      '<span>👤 বর্তমান আবাসিক</span><strong style="color:#2e7d32;">'+totalOcc+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#fff3e0;border-radius:8px;">'+
+      '<span>🪑 খালি আসন</span><strong style="color:#e65100;">'+Math.max(0,totalCap-totalOcc)+'</strong></div>'+
+    '<div style="margin-top:4px;background:#ddd;border-radius:6px;height:10px;">'+
+      '<div style="background:var(--primary);width:'+(totalCap>0?Math.min(100,Math.round(totalOcc/totalCap*100)):0)+'%;height:100%;border-radius:6px;transition:.4s;"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text-muted);text-align:center;">'+(totalCap>0?Math.round(totalOcc/totalCap*100):0)+'% পূর্ণ</div>'+
     '</div>';
 }
 function openHostelRoomModal() {
-  var num = prompt('রুম নম্বর:');
+  var num = prompt('রুম নম্বর (যেমন: ১০১, A-১):');
   if(!num) return;
-  var type = prompt('রুমের ধরন (যেমন: সাধারণ, VIP):','সাধারণ')||'সাধারণ';
-  var cap = parseInt(prompt('ধারণক্ষমতা (কতজন):','4'))||4;
+  var type = prompt('রুমের ধরন:', 'সাধারণ')||'সাধারণ';
+  var cap = parseInt(prompt('ধারণক্ষমতা (কতজন):', '4'))||4;
   if(!data.hostelRooms) data.hostelRooms = [];
   data.hostelRooms.push({id:'room_'+Date.now(), number:num, type:type, capacity:cap});
   save('hostelRooms');
-  renderHostelPage();
+  renderHostelRooms();
   toast('রুম '+num+' যোগ হয়েছে ✅');
 }
 function deleteHostelRoom(id) {
   if(!confirm('এই রুম মুছে ফেলবেন?')) return;
   data.hostelRooms = (data.hostelRooms||[]).filter(function(r){ return r.id!==id; });
   save('hostelRooms');
-  renderHostelPage();
+  renderHostelRooms();
+}
+
+// --- RESIDENTS ---
+function renderHostelResidents() {
+  var rooms = data.hostelRooms||[];
+  var assignments = (data.hostelAssignments||[]).filter(function(a){ return a.active; });
+  var html = assignments.length===0 ? '<p style="color:var(--text-muted);text-align:center;padding:20px;">কোনো আবাসিক শিক্ষার্থী নেই।</p>' :
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">শিক্ষার্থী</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">শ্রেণি</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">রুম</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">ভর্তির তারিখ</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">ছুটিতে?</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th>'+
+    '</tr></thead><tbody>'+
+    assignments.map(function(a) {
+      var s = data.students.find(function(x){ return x.id===a.studentId; });
+      var r = rooms.find(function(x){ return x.id===a.roomId; });
+      var onLeave = isStudentOnHostelLeave(a.studentId);
+      return '<tr>'+
+        '<td style="padding:8px;font-weight:600;">'+(s?s.name:'অজানা')+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+(s?'<span class="badge badge-blue">'+s.cls+'</span>':'')+'</td>'+
+        '<td style="padding:8px;text-align:center;font-weight:700;">'+(r?r.number:'?')+'</td>'+
+        '<td style="padding:8px;text-align:center;font-size:11px;">'+a.date+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+
+          (onLeave ? '<span class="badge badge-red">ছুটিতে</span>' : '<span class="badge badge-green">আছে</span>')+
+        '</td>'+
+        '<td style="padding:8px;text-align:center;">'+
+          '<button class="btn btn-danger btn-sm" onclick="removeHostelAssignment(this.dataset.id)" data-id="'+a.id+'">✕ সরান</button>'+
+        '</td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  document.getElementById('hostelAssignList').innerHTML = html;
 }
 function openAssignRoomModal() {
   var rooms = (data.hostelRooms||[]);
   if(rooms.length===0) { toast('প্রথমে রুম যোগ করুন!','error'); return; }
-  var sOpts = data.students.map(function(s){ return s.id+'|'+s.name+' ('+s.cls+')'; }).join('\n');
-  var sid = prompt('শিক্ষার্থীর নাম বা ID:\n'+data.students.slice(0,10).map(function(s){ return s.name; }).join(', ')+'...');
-  var student = data.students.find(function(s){ return s.name===sid||s.id===sid; });
-  if(!student) { toast('শিক্ষার্থী পাওয়া যায়নি!','error'); return; }
-  var roomOpts = rooms.map(function(r){ return r.number+' ('+r.type+')'; }).join(', ');
-  var roomNum = prompt('রুম নম্বর:\n'+roomOpts);
-  var room = rooms.find(function(r){ return r.number===roomNum; });
+  var unassigned = data.students.filter(function(s) {
+    return !(data.hostelAssignments||[]).find(function(a){ return a.studentId===s.id&&a.active; });
+  });
+  if(unassigned.length===0) { toast('সব শিক্ষার্থী ইতিমধ্যে রুমে আছে!'); return; }
+  var sName = prompt('শিক্ষার্থীর নাম (যেকোনো অংশ):');
+  if(!sName) return;
+  var matches = unassigned.filter(function(s){ return s.name.includes(sName); });
+  if(matches.length===0) { toast('শিক্ষার্থী পাওয়া যায়নি!','error'); return; }
+  var student = matches[0];
+  if(matches.length>1) {
+    var pick = prompt('একাধিক পাওয়া গেছে:\n'+matches.map(function(s,i){ return (i+1)+'. '+s.name+' ('+s.cls+')'; }).join('\n')+'\nনম্বর লিখুন:');
+    student = matches[parseInt(pick)-1];
+    if(!student) { toast('বাতিল','error'); return; }
+  }
+  var roomOpts = rooms.map(function(r,i){ return (i+1)+'. রুম '+r.number+' ('+r.type+', '+r.capacity+' জন)'; }).join('\n');
+  var roomPick = parseInt(prompt('রুম নির্বাচন করুন:\n'+roomOpts+'\nনম্বর লিখুন:'));
+  var room = rooms[roomPick-1];
   if(!room) { toast('রুম পাওয়া যায়নি!','error'); return; }
   if(!data.hostelAssignments) data.hostelAssignments = [];
-  // existing assignment check
-  var existing = data.hostelAssignments.find(function(a){ return a.studentId===student.id&&a.active; });
-  if(existing) { toast(student.name+' আগে থেকেই একটি রুমে আছে!','error'); return; }
   data.hostelAssignments.push({id:'ha_'+Date.now(), studentId:student.id, roomId:room.id, date:new Date().toISOString().split('T')[0], active:true});
   save('hostelAssignments');
-  renderHostelPage();
+  renderHostelResidents();
   toast(student.name+' → রুম '+room.number+' বরাদ্দ হয়েছে ✅');
 }
 function removeHostelAssignment(id) {
-  var a = (data.hostelAssignments||[]).find(function(x){ return x.id===id; });
-  if(!a) return;
   if(!confirm('এই বরাদ্দ সরিয়ে দেবেন?')) return;
-  a.active = false;
+  var a = (data.hostelAssignments||[]).find(function(x){ return x.id===id; });
+  if(a) a.active = false;
   save('hostelAssignments');
-  renderHostelPage();
+  renderHostelResidents();
   toast('বরাদ্দ সরানো হয়েছে।');
 }
+
+// --- MEAL ROUTINE ---
+var DAYS = ['শনিবার','রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার'];
+var MEALS = ['সকাল','দুপুর','রাত'];
+function renderMealRoutine() {
+  var routine = data.hostelMealRoutine||{};
+  var tbody = document.getElementById('mealRoutineBody');
+  if(tbody) {
+    tbody.innerHTML = DAYS.map(function(day) {
+      return '<tr>'+
+        '<td style="padding:6px;font-weight:600;font-size:12px;background:var(--primary-ultra-light);">'+day+'</td>'+
+        MEALS.map(function(meal) {
+          var val = (routine[day]&&routine[day][meal])||'';
+          return '<td style="padding:4px;"><input type="text" id="meal-'+day+'-'+meal+'" value="'+val+'" placeholder="মেনু..." style="width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-family:inherit;font-size:12px;box-sizing:border-box;"></td>';
+        }).join('')+
+      '</tr>';
+    }).join('');
+  }
+  // Today menu
+  var dayNames = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
+  var todayDay = dayNames[new Date().getDay()];
+  var todayMenu = routine[todayDay]||{};
+  var menuEl = document.getElementById('todayMealMenu');
+  if(menuEl) {
+    menuEl.innerHTML = '<div style="font-weight:700;margin-bottom:8px;color:var(--primary);">'+todayDay+'</div>'+
+      MEALS.map(function(m) {
+        return '<div style="display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border);align-items:center;">'+
+          '<span style="width:40px;font-size:11px;font-weight:700;color:var(--text-muted);">'+m+'</span>'+
+          '<span style="font-size:13px;">'+(todayMenu[m]||'<i style="color:var(--text-muted);">নির্ধারিত নেই</i>')+'</span>'+
+        '</div>';
+      }).join('');
+  }
+}
+function saveMealRoutine() {
+  var routine = {};
+  DAYS.forEach(function(day) {
+    routine[day] = {};
+    MEALS.forEach(function(meal) {
+      var el = document.getElementById('meal-'+day+'-'+meal);
+      if(el) routine[day][meal] = el.value.trim();
+    });
+  });
+  data.hostelMealRoutine = routine;
+  save('hostelMealRoutine');
+  renderMealRoutine();
+  toast('খাবার রুটিন সংরক্ষিত হয়েছে ✅');
+}
+
+// --- HOSTEL FEE ---
+function saveHostelFeeRate() {
+  data.settings.hostelFeeRate = parseFloat(document.getElementById('hostelFeeAmount').value)||0;
+  save('settings');
+}
+function renderHostelFee() {
+  var rate = data.settings.hostelFeeRate||0;
+  var feeEl = document.getElementById('hostelFeeAmount');
+  if(feeEl) feeEl.value = rate;
+  var residents = (data.hostelAssignments||[]).filter(function(a){ return a.active; });
+  var today = new Date().toISOString().split('T')[0];
+  var monthStr = today.slice(0,7);
+  var monthFees = (data.hostelFees||[]).filter(function(f){ return (f.date||'').slice(0,7)===monthStr; });
+  var collected = monthFees.reduce(function(a,b){ return a+Number(b.amount); },0);
+  var totalDue = residents.reduce(function(a,r) {
+    var paid = (data.hostelFees||[]).filter(function(f){ return f.studentId===r.studentId; }).reduce(function(a,b){ return a+Number(b.amount); },0);
+    var months = calcMonthsBetween(r.date);
+    return a + Math.max(0, months*rate - paid);
+  }, 0);
+  var collEl = document.getElementById('hostelFeeCollected');
+  var dueEl = document.getElementById('hostelFeeDue');
+  if(collEl) collEl.textContent = '৳ '+collected.toLocaleString();
+  if(dueEl) dueEl.textContent = '৳ '+totalDue.toLocaleString();
+  // Resident fee list
+  var listEl = document.getElementById('hostelFeeList');
+  if(listEl) {
+    listEl.innerHTML = residents.length===0 ? '<p style="color:var(--text-muted);">কোনো আবাসিক নেই।</p>' :
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+      '<thead><tr>'+
+      '<th style="background:var(--primary);color:#fff;padding:8px;">শিক্ষার্থী</th>'+
+      '<th style="background:var(--primary);color:#fff;padding:8px;">শ্রেণি</th>'+
+      '<th style="background:var(--primary);color:#fff;padding:8px;">মোট পরিশোধ</th>'+
+      '<th style="background:var(--primary);color:#fff;padding:8px;">বকেয়া</th>'+
+      '<th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th>'+
+      '</tr></thead><tbody>'+
+      residents.map(function(r) {
+        var s = data.students.find(function(x){ return x.id===r.studentId; });
+        var paid = (data.hostelFees||[]).filter(function(f){ return f.studentId===r.studentId; }).reduce(function(a,b){ return a+Number(b.amount); },0);
+        var months = calcMonthsBetween(r.date);
+        var studentRate = s ? (parseFloat(s.hostelFee)||rate) : rate;
+        var due = Math.max(0, months*studentRate - paid);
+        var mealInfo = '';
+        if(s && s.meal==='হ্যাঁ') {
+          if(s.mealType==='meal') {
+            var mealPH = getMealCostPerHead(today.slice(0,7));
+            mealInfo = '<div style="font-size:10px;color:#2563ab;margin-top:2px;">🍽️ মিল: ৳'+mealPH.toLocaleString()+'/মাস (এ মাস)</div>';
+          } else {
+            mealInfo = '<div style="font-size:10px;color:#2563ab;margin-top:2px;">🍽️ Fixed: ৳'+(parseFloat(s.mealFee)||0).toLocaleString()+'/মাস</div>';
+          }
+        }
+        return '<tr>'+
+          '<td style="padding:8px;font-weight:600;">'+(s?s.name:'অজানা')+mealInfo+'</td>'+
+          '<td style="padding:8px;text-align:center;">'+(s?'<span class="badge badge-blue">'+s.cls+'</span>':'')+'</td>'+
+          '<td style="padding:8px;text-align:center;">৳ '+paid.toLocaleString()+'</td>'+
+          '<td style="padding:8px;text-align:center;"><span class="badge '+(due>0?'badge-red':'badge-green')+'">'+(due>0?'৳ '+due.toLocaleString():'পরিশোধিত')+'</span></td>'+
+          '<td style="padding:8px;text-align:center;">'+
+            '<button class="btn btn-primary btn-sm" onclick="collectHostelFee(this.dataset.id)" data-id="'+r.studentId+'">💰 নিন</button>'+
+          '</td></tr>';
+      }).join('')+
+      '</tbody></table>';
+  }
+}
+function openHostelFeeModal() {
+  var residents = (data.hostelAssignments||[]).filter(function(a){ return a.active; });
+  if(residents.length===0) { toast('কোনো আবাসিক শিক্ষার্থী নেই!','error'); return; }
+  var opts = residents.map(function(r,i) {
+    var s = data.students.find(function(x){ return x.id===r.studentId; });
+    return (i+1)+'. '+(s?s.name:'?');
+  }).join('\n');
+  var pick = parseInt(prompt('কার ফি নেবেন:\n'+opts));
+  var r = residents[pick-1];
+  if(!r) return;
+  var amt = parseFloat(prompt('পরিমাণ (৳):'));
+  if(!amt) return;
+  if(!data.hostelFees) data.hostelFees = [];
+  var s = data.students.find(function(x){ return x.id===r.studentId; });
+  data.hostelFees.push({id:'hf_'+Date.now(), studentId:r.studentId, amount:amt, date:new Date().toISOString().split('T')[0], note:'হোস্টেল ফি'});
+  save('hostelFees');
+  renderHostelFee();
+  toast((s?s.name:'শিক্ষার্থী')+' এর ৳'+amt+' ফি নেওয়া হয়েছে ✅');
+}
+function collectHostelFee(studentId) {
+  var s = data.students.find(function(x){ return x.id===studentId; });
+  var rate = data.settings.hostelFeeRate||0;
+  var paid = (data.hostelFees||[]).filter(function(f){ return f.studentId===studentId; }).reduce(function(a,b){ return a+Number(b.amount); },0);
+  var r = (data.hostelAssignments||[]).find(function(a){ return a.studentId===studentId&&a.active; });
+  var months = r ? calcMonthsBetween(r.date) : 1;
+  var due = Math.max(0, months*rate-paid);
+  var amt = parseFloat(prompt((s?s.name:'শিক্ষার্থী')+' এর বকেয়া: ৳'+due+'\nনিন (৳):',due));
+  if(!amt) return;
+  if(!data.hostelFees) data.hostelFees = [];
+  data.hostelFees.push({id:'hf_'+Date.now(), studentId:studentId, amount:amt, date:new Date().toISOString().split('T')[0], note:'হোস্টেল ফি'});
+  save('hostelFees');
+  renderHostelFee();
+  toast('৳'+amt+' সংগ্রহ হয়েছে ✅');
+}
+
+// --- HOSTEL LEAVE ---
+function isStudentOnHostelLeave(studentId) {
+  var today = new Date().toISOString().split('T')[0];
+  return (data.hostelLeaves||[]).some(function(l) {
+    return l.studentId===studentId && l.from<=today && l.to>=today && l.active!==false;
+  });
+}
+function renderHostelLeave() {
+  var leaves = (data.hostelLeaves||[]).sort(function(a,b){ return b.from.localeCompare(a.from); });
+  var today = new Date().toISOString().split('T')[0];
+  var html = leaves.length===0 ? '<p style="color:var(--text-muted);text-align:center;padding:20px;">কোনো ছুটির রেকর্ড নেই।</p>' :
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">শিক্ষার্থী</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">ছুটি থেকে</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">ছুটি পর্যন্ত</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">কারণ</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">অবস্থা</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:8px;">🍽️ মিল</th>'+
+    '</tr></thead><tbody>'+
+    leaves.map(function(l) {
+      var s = data.students.find(function(x){ return x.id===l.studentId; });
+      var active = l.from<=today && l.to>=today && l.active!==false;
+      return '<tr>'+
+        '<td style="padding:8px;font-weight:600;">'+(s?s.name:'অজানা')+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+l.from+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+l.to+'</td>'+
+        '<td style="padding:8px;">'+(l.reason||'-')+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+
+          (active ? '<span class="badge badge-red">এখন ছুটিতে</span>' : (l.to<today?'<span class="badge">শেষ</span>':'<span class="badge badge-blue">আসন্ন</span>'))+
+        '</td>'+
+        '<td style="padding:8px;text-align:center;">'+
+          (active ? '<span style="font-size:16px;" title="খাবার বন্ধ">❌</span>' : '<span style="font-size:16px;" title="খাবার চালু">✅</span>')+
+        '</td></tr>';
+    }).join('')+
+    '</tbody></table>';
+  document.getElementById('hostelLeaveList').innerHTML = html;
+}
+function openHostelLeaveModal() {
+  var residents = (data.hostelAssignments||[]).filter(function(a){ return a.active; });
+  if(residents.length===0) { toast('কোনো আবাসিক নেই!','error'); return; }
+  var opts = residents.map(function(r,i) {
+    var s = data.students.find(function(x){ return x.id===r.studentId; });
+    return (i+1)+'. '+(s?s.name:'?');
+  }).join('\n');
+  var pick = parseInt(prompt('কার ছুটি রেকর্ড করবেন:\n'+opts));
+  var r = residents[pick-1];
+  if(!r) return;
+  var from = prompt('ছুটি শুরু (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+  if(!from) return;
+  var to = prompt('ছুটি শেষ (YYYY-MM-DD):');
+  if(!to) return;
+  var reason = prompt('কারণ (ঐচ্ছিক):')||'';
+  if(!data.hostelLeaves) data.hostelLeaves = [];
+  var s = data.students.find(function(x){ return x.id===r.studentId; });
+  data.hostelLeaves.push({id:'hl_'+Date.now(), studentId:r.studentId, from:from, to:to, reason:reason, active:true});
+  save('hostelLeaves');
+  renderHostelLeave();
+  renderHostelResidents();
+  toast((s?s.name:'শিক্ষার্থী')+' এর ছুটি রেকর্ড হয়েছে। খাবার '+from+' থেকে '+to+' পর্যন্ত বন্ধ থাকবে।');
+}
+
+
+// ===================== HOSTEL FORM LOGIC =====================
+function onHostelChange() {
+  var val = document.getElementById('sHostel').value;
+  var isHostel = val==='হ্যাঁ';
+  var feeGrp = document.getElementById('sHostelFeeGroup');
+  var mealGrp = document.getElementById('sMealGroup');
+  if(feeGrp) feeGrp.style.display = isHostel ? '' : 'none';
+  if(mealGrp) mealGrp.style.display = isHostel ? '' : 'none';
+  if(isHostel) {
+    // Default hostel fee from settings
+    var defEl = document.getElementById('sHostelFeeDefault');
+    var rate = data.settings.hostelFeeRate||0;
+    if(defEl) defEl.textContent = '৳'+rate;
+    var feeIn = document.getElementById('sHostelFee');
+    if(feeIn && !feeIn.value) feeIn.value = rate||'';
+    // Reset meal
+    var mealSel = document.getElementById('sMeal');
+    if(mealSel) mealSel.value = 'না';
+    onMealChange();
+  } else {
+    onMealChange();
+  }
+}
+function onMealChange() {
+  var hostel = document.getElementById('sHostel').value;
+  var meal = document.getElementById('sMeal') ? document.getElementById('sMeal').value : 'না';
+  var showMeal = hostel==='হ্যাঁ' && meal==='হ্যাঁ';
+  var chargeGrp = document.getElementById('sMealChargeGroup');
+  if(chargeGrp) chargeGrp.style.display = showMeal ? '' : 'none';
+  if(showMeal) onMealTypeChange(); else {
+    var fixGrp = document.getElementById('sMealFixedGroup');
+    var infoGrp = document.getElementById('sMealBasedInfo');
+    if(fixGrp) fixGrp.style.display='none';
+    if(infoGrp) infoGrp.style.display='none';
+  }
+}
+function onMealTypeChange() {
+  var type = document.getElementById('sMealType') ? document.getElementById('sMealType').value : 'fixed';
+  var fixGrp = document.getElementById('sMealFixedGroup');
+  var infoGrp = document.getElementById('sMealBasedInfo');
+  if(fixGrp) fixGrp.style.display = type==='fixed' ? '' : 'none';
+  if(infoGrp) infoGrp.style.display = type==='meal' ? '' : 'none';
+}
+
+
+// ===================== MEAL COST MANAGEMENT =====================
+function openMealCostModal() {
+  var today = new Date().toISOString().slice(0,7);
+  document.getElementById('mcMonth').value = today;
+  document.getElementById('mcMarket').value = '';
+  document.getElementById('mcCook').value = '';
+  document.getElementById('mcHelper').value = '';
+  document.getElementById('mcOther').value = '';
+  document.getElementById('mcNote').value = '';
+  updateMcCalculation();
+  openModal('mealCostModal');
+  ['mcMarket','mcCook','mcHelper','mcOther'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('input', updateMcCalculation);
+  });
+}
+function getMealResidents(month) {
+  // Meal-based শিক্ষার্থী — hostel='হ্যাঁ', meal='হ্যাঁ', mealType='meal'
+  // ছুটিতে থাকলে বাদ
+  var activeResidents = (data.hostelAssignments||[]).filter(function(a){ return a.active; });
+  return activeResidents.filter(function(a) {
+    var s = data.students.find(function(x){ return x.id===a.studentId; });
+    if(!s || s.hostel!=='হ্যাঁ' || s.meal!=='হ্যাঁ' || s.mealType!=='meal') return false;
+    // ছুটিতে check
+    var monthStart = (month||new Date().toISOString().slice(0,7))+'-01';
+    var monthEnd = (month||new Date().toISOString().slice(0,7))+'-31';
+    var onLeaveWholeMonth = (data.hostelLeaves||[]).some(function(l){
+      return l.studentId===s.id && l.from<=monthStart && l.to>=monthEnd;
+    });
+    return !onLeaveWholeMonth;
+  }).map(function(a){ return data.students.find(function(x){ return x.id===a.studentId; }); }).filter(Boolean);
+}
+function updateMcCalculation() {
+  var market = parseFloat(document.getElementById('mcMarket').value)||0;
+  var cook = parseFloat(document.getElementById('mcCook').value)||0;
+  var helper = parseFloat(document.getElementById('mcHelper').value)||0;
+  var other = parseFloat(document.getElementById('mcOther').value)||0;
+  var total = market+cook+helper+other;
+  var month = document.getElementById('mcMonth').value;
+  var residents = getMealResidents(month);
+  var perHead = residents.length>0 ? Math.round(total/residents.length) : 0;
+  var calcEl = document.getElementById('mcCalculation');
+  if(calcEl) calcEl.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">'+
+    '<div>মোট খরচ: <strong>৳ '+total.toLocaleString()+'</strong></div>'+
+    '<div>Meal-based আবাসিক: <strong>'+residents.length+' জন</strong></div>'+
+    '<div style="grid-column:1/-1;background:var(--primary);color:#fff;border-radius:6px;padding:8px;text-align:center;font-weight:700;font-size:15px;">'+
+      'জনপ্রতি খরচ: ৳ '+perHead.toLocaleString()+'/মাস'+
+    '</div>'+
+    '</div>';
+}
+function saveMealCost() {
+  var month = document.getElementById('mcMonth').value;
+  if(!month) { toast('মাস নির্বাচন করুন!','error'); return; }
+  var market = parseFloat(document.getElementById('mcMarket').value)||0;
+  var cook = parseFloat(document.getElementById('mcCook').value)||0;
+  var helper = parseFloat(document.getElementById('mcHelper').value)||0;
+  var other = parseFloat(document.getElementById('mcOther').value)||0;
+  var note = document.getElementById('mcNote').value;
+  var total = market+cook+helper+other;
+  if(!data.hostelMealCosts) data.hostelMealCosts = [];
+  // Remove old entry for same month
+  data.hostelMealCosts = data.hostelMealCosts.filter(function(c){ return c.month!==month; });
+  data.hostelMealCosts.push({id:'mc_'+Date.now(), month:month, market:market, cook:cook, helper:helper, other:other, total:total, note:note});
+  save('hostelMealCosts');
+  closeModal('mealCostModal');
+  renderMealCostSummary();
+  toast(month+' এর খাবার খরচ সেভ হয়েছে ✅');
+}
+function getMealCostPerHead(month) {
+  var costs = (data.hostelMealCosts||[]).find(function(c){ return c.month===month; });
+  if(!costs) return 0;
+  var residents = getMealResidents(month);
+  return residents.length>0 ? Math.round(costs.total/residents.length) : 0;
+}
+function renderMealCostSummary() {
+  var month = document.getElementById('mealCostMonth').value;
+  if(!month) {
+    month = new Date().toISOString().slice(0,7);
+    document.getElementById('mealCostMonth').value = month;
+  }
+  var costs = (data.hostelMealCosts||[]).find(function(c){ return c.month===month; });
+  var residents = getMealResidents(month);
+  var perHead = costs && residents.length>0 ? Math.round(costs.total/residents.length) : 0;
+  var el = document.getElementById('mealCostSummary');
+  if(!el) return;
+
+  var costHtml = costs ?
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">'+
+    '<div style="background:#e8f5e9;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:var(--text-muted);">বাজার খরচ</div><div style="font-weight:700;color:#2e7d32;">৳ '+(costs.market||0).toLocaleString()+'</div></div>'+
+    '<div style="background:#e3f2fd;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:var(--text-muted);">রাঁধুনি</div><div style="font-weight:700;color:#1565c0;">৳ '+(costs.cook||0).toLocaleString()+'</div></div>'+
+    '<div style="background:#fff3e0;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:var(--text-muted);">Helper</div><div style="font-weight:700;color:#e65100;">৳ '+(costs.helper||0).toLocaleString()+'</div></div>'+
+    '<div style="background:#fce4ec;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:var(--text-muted);">অন্যান্য</div><div style="font-weight:700;color:#880e4f;">৳ '+(costs.other||0).toLocaleString()+'</div></div>'+
+    '<div style="background:var(--primary);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:rgba(255,255,255,.8);">মোট</div><div style="font-weight:700;color:#fff;">৳ '+costs.total.toLocaleString()+'</div></div>'+
+    '<div style="background:var(--accent);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:rgba(26,46,34,.7);">জনপ্রতি</div><div style="font-weight:700;color:#1a2e22;">৳ '+perHead.toLocaleString()+'</div></div>'+
+    '</div>' :
+    '<div style="background:#fff8e1;border-radius:8px;padding:12px;text-align:center;color:var(--text-muted);font-size:13px;margin-bottom:12px;">এই মাসের খরচ এখনো এন্ট্রি করা হয়নি।</div>';
+
+  var resHtml = residents.length===0 ?
+    '<p style="color:var(--text-muted);text-align:center;padding:10px;">Meal-based আবাসিক কেউ নেই।</p>' :
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr>'+
+    '<th style="background:var(--primary);color:#fff;padding:7px;">শিক্ষার্থী</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:7px;">শ্রেণি</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:7px;">মিল বিল</th>'+
+    '<th style="background:var(--primary);color:#fff;padding:7px;">ছুটি কাটা</th>'+
+    '</tr></thead><tbody>'+
+    residents.map(function(s) {
+      // ছুটির দিন কাটা
+      var leaves = (data.hostelLeaves||[]).filter(function(l){ return l.studentId===s.id && l.from.slice(0,7)===month; });
+      var leaveDays = leaves.reduce(function(a,l) {
+        var f=new Date(l.from), t=new Date(l.to);
+        return a+Math.round((t-f)/(1000*60*60*24))+1;
+      }, 0);
+      var daysInMonth = new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 0).getDate();
+      var effectiveDays = Math.max(0, daysInMonth-leaveDays);
+      var bill = costs ? Math.round(perHead * effectiveDays / daysInMonth) : 0;
+      return '<tr>'+
+        '<td style="padding:7px;font-weight:600;">'+s.name+'</td>'+
+        '<td style="padding:7px;text-align:center;"><span class="badge badge-blue">'+s.cls+'</span></td>'+
+        '<td style="padding:7px;text-align:center;font-weight:700;color:var(--primary);">৳ '+bill.toLocaleString()+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+(leaveDays>0?'<span class="badge badge-red">'+leaveDays+' দিন</span>':'<span class="badge badge-green">নেই</span>')+'</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>';
+
+  el.innerHTML = costHtml + '<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--primary);">Meal-based শিক্ষার্থী ও তাদের বিল</div>' + resHtml;
+}
+// renderHostelPage এ renderMealCostSummary init
+var _origRenderMeal = window.renderMealRoutine;
 
 function quickEditStudent(id) { editStudent(id); } // fallback
 function deleteStudent(id) {
@@ -3110,6 +3899,19 @@ function editStudent(id) {
   document.getElementById('sAdmDate').value = s.admDate||'';
   document.getElementById('sFee').value = s.fee||'';
   document.getElementById('sNote').value = s.note||'';
+  // Hostel load
+  document.getElementById('sHostel').value = s.hostel||'না';
+  onHostelChange();
+  if(s.hostel==='হ্যাঁ') {
+    document.getElementById('sHostelFee').value = s.hostelFee||'';
+    document.getElementById('sMeal').value = s.meal||'না';
+    onMealChange();
+    if(s.meal==='হ্যাঁ') {
+      document.getElementById('sMealType').value = s.mealType||'fixed';
+      onMealTypeChange();
+      if(s.mealType==='fixed') document.getElementById('sMealFixed').value = s.mealFee||'';
+    }
+  }
   // ছবি লোড
   var prevEl = document.getElementById('sPhotoPreview');
   var dataEl = document.getElementById('sPhotoData');
@@ -3140,6 +3942,11 @@ function editStudent(id) {
     s.admDate = document.getElementById('sAdmDate').value;
     s.fee = document.getElementById('sFee').value||0;
     s.note = document.getElementById('sNote').value;
+    s.hostel = document.getElementById('sHostel').value||'না';
+    s.hostelFee = s.hostel==='হ্যাঁ' ? (parseFloat(document.getElementById('sHostelFee').value)||0) : 0;
+    s.meal = s.hostel==='হ্যাঁ' ? (document.getElementById('sMeal').value||'না') : 'না';
+    s.mealType = s.meal==='হ্যাঁ' ? (document.getElementById('sMealType').value||'fixed') : 'fixed';
+    s.mealFee = (s.meal==='হ্যাঁ'&&s.mealType==='fixed') ? (parseFloat(document.getElementById('sMealFixed').value)||0) : 0;
     var newPhoto = document.getElementById('sPhotoData').value;
     if(newPhoto) s.photo = newPhoto;
     save('students'); closeModal('addStudentModal');
@@ -4620,6 +5427,8 @@ function openStudentProfile(sid) {
           <div><span style="color:var(--text-muted)">ঠিকানা:</span> ${s.address||'-'}</div>
           <div><span style="color:var(--text-muted)">ভর্তি তারিখ:</span> ${s.admDate||'-'}</div>
           <div><span style="color:var(--text-muted)">মাসিক বেতন:</span> ৳ ${Number(s.fee||0).toLocaleString()}</div>
+              ${s.hostel==='হ্যাঁ' ? '<div><span style="color:var(--text-muted)">🏠 হোস্টেল ফি:</span> ৳ '+Number(s.hostelFee||data.settings.hostelFeeRate||0).toLocaleString()+'/মাস</div>' : ''}
+              ${s.meal==='হ্যাঁ' ? '<div><span style="color:var(--text-muted)">🍽️ খাবার:</span> '+(s.mealType==='meal'?'Meal-based':'Fixed ৳'+Number(s.mealFee||0).toLocaleString()+'/মাস')+'</div>' : ''}
         </div>
       </div>
       <!-- ফি সারসংক্ষেপ -->
