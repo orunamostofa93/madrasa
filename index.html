@@ -6,6 +6,7 @@
 <title>মাদ্রাসা ম্যানেজমেন্ট সিস্টেম</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase Compat SDK -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -511,7 +512,10 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">👨‍🎓 শিক্ষার্থী ব্যবস্থাপনা</span>
-          <button class="btn btn-primary" onclick="openModal('addStudentModal')">+ নতুন ভর্তি</button>
+          <div class="flex gap-8">
+            <button class="btn btn-accent btn-sm" onclick="openModal('bulkImportModal')">📥 Excel Import</button>
+            <button class="btn btn-primary" onclick="openModal('addStudentModal')">+ নতুন ভর্তি</button>
+          </div>
         </div>
         <div class="card-body">
           <div class="filter-bar">
@@ -1067,6 +1071,8 @@
           <select id="sBlood"><option value="">নির্বাচন করুন</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
         </div>
         <div class="form-group"><label>মোবাইল নম্বর</label><input id="sMobile" type="text" placeholder="01XXXXXXXXX" style="font-family:monospace;" oninput="validateMobile(this)" maxlength="11"></div>
+        <div class="form-group"><label>পিতার মোবাইল</label><input id="sFatherMobile" type="text" placeholder="01XXXXXXXXX" style="font-family:monospace;" maxlength="11"></div>
+        <div class="form-group"><label>মাতার মোবাইল</label><input id="sMotherMobile" type="text" placeholder="01XXXXXXXXX" style="font-family:monospace;" maxlength="11"></div>
         <div class="form-group"><label>ঠিকানা</label><input id="sAddress" type="text" placeholder="গ্রাম, উপজেলা, জেলা"></div>
         <div class="form-group"><label>পিতার NID নম্বর</label><input id="sFatherNID" type="text" style="font-family:monospace;" placeholder="পিতার জাতীয় পরিচয়পত্র নম্বর"></div>
         <div class="form-group"><label>মাতার NID নম্বর</label><input id="sMotherNID" type="text" style="font-family:monospace;" placeholder="মাতার জাতীয় পরিচয়পত্র নম্বর"></div>
@@ -1142,6 +1148,83 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('addTeacherModal')">বাতিল</button>
       <button class="btn btn-primary" onclick="addTeacher()">✅ যোগ করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Import Modal -->
+<div id="bulkImportModal" class="modal-overlay">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <span class="modal-title">📥 Excel/CSV থেকে শিক্ষার্থী Import</span>
+      <button class="modal-close" onclick="closeModal('bulkImportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Step 1: Download template -->
+      <div class="alert alert-info" style="margin-bottom:14px;">
+        <b>ধাপ ১:</b> নিচের বাটন থেকে Excel template ডাউনলোড করুন → Word থেকে data copy করে fill করুন → আবার এখানে upload করুন।
+      </div>
+      <div style="margin-bottom:14px;">
+        <button class="btn btn-accent" onclick="downloadImportTemplate()">⬇️ Template ডাউনলোড করুন (.csv)</button>
+      </div>
+      <!-- Step 2: Upload -->
+      <div class="alert alert-warning" style="margin-bottom:10px;">
+        <b>ধাপ ২:</b> Fill করা CSV/Excel file upload করুন।<br>
+        <small>Column order: বাংলা নাম, ইংরেজি নাম, ক্লাস, রোল, পিতার নাম, পিতার মোবাইল, মাতার নাম, মাতার মোবাইল</small>
+      </div>
+      <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="margin-bottom:10px;" onchange="previewImport(this)">
+      <!-- Preview -->
+      <div id="importPreview" style="display:none;">
+        <div style="font-weight:700;margin-bottom:8px;" id="importPreviewCount"></div>
+        <div style="max-height:260px;overflow-y:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr id="importPreviewHead" style="background:var(--primary);color:#fff;"></tr></thead>
+            <tbody id="importPreviewBody"></tbody>
+          </table>
+        </div>
+        <div id="importErrors" style="margin-top:8px;color:var(--danger);font-size:12px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('bulkImportModal')">বাতিল</button>
+      <button class="btn btn-primary" id="importConfirmBtn" style="display:none;" onclick="confirmBulkImport()">✅ Import করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Import Modal -->
+<div id="bulkImportModal" class="modal-overlay">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <span class="modal-title">📥 Excel/CSV থেকে শিক্ষার্থী Import</span>
+      <button class="modal-close" onclick="closeModal('bulkImportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:12px;">
+        <b>ধাপ ১:</b> Template ডাউনলোড করুন → Word থেকে data Excel/CSV তে copy করুন → upload করুন।
+      </div>
+      <button class="btn btn-accent btn-sm" onclick="downloadImportTemplate()" style="margin-bottom:14px;">⬇️ Template ডাউনলোড (.csv)</button>
+      <div class="alert alert-warning" style="margin-bottom:10px;font-size:12px;">
+        <b>Column order:</b> বাংলা নাম, ইংরেজি নাম, ক্লাস, রোল, পিতার নাম, পিতার মোবাইল, মাতার নাম, মাতার মোবাইল<br>
+        <b>ক্লাসের নাম হুবহু লিখুন</b> যেমন: প্লে, নার্সারি জুঁই, ১ম, ২য়, ৭ম ইত্যাদি
+      </div>
+      <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="margin-bottom:12px;width:100%;" onchange="previewImport(this)">
+      <div id="importPreview" style="display:none;">
+        <div style="font-weight:700;margin-bottom:8px;font-size:13px;" id="importPreviewCount"></div>
+        <div style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr style="background:var(--primary);color:#fff;position:sticky;top:0;">
+              <th style="padding:6px;">নাম</th><th style="padding:6px;">ক্লাস</th><th style="padding:6px;">রোল</th><th style="padding:6px;">পিতা</th><th style="padding:6px;">মোবাইল</th>
+            </tr></thead>
+            <tbody id="importPreviewBody"></tbody>
+          </table>
+        </div>
+        <div id="importErrors" style="margin-top:8px;color:var(--danger);font-size:12px;max-height:80px;overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('bulkImportModal')">বাতিল</button>
+      <button class="btn btn-primary" id="importConfirmBtn" style="display:none;" onclick="confirmBulkImport()">✅ Import করুন</button>
     </div>
   </div>
 </div>
@@ -2230,6 +2313,8 @@ function addStudent() {
     cls, branch:document.getElementById('sBranch').value, dob:document.getElementById('sDOB').value,
     gender:document.getElementById('sGender').value, blood:document.getElementById('sBlood').value,
     mobile:document.getElementById('sMobile').value,
+    fatherMobile:document.getElementById('sFatherMobile').value,
+    motherMobile:document.getElementById('sMotherMobile').value,
     address:document.getElementById('sAddress').value,
     admDate:document.getElementById('sAdmDate').value||new Date().toISOString().split('T')[0],
     fee:document.getElementById('sFee').value||0, note:document.getElementById('sNote').value,
@@ -2239,7 +2324,7 @@ function addStudent() {
   };
   data.students.push(student); save('students');
   closeModal('addStudentModal');
-  ['sName','sNameEn','sFather','sFatherEn','sFatherNID','sMother','sMotherEn','sMotherNID','sDOB','sMobile','sAddress','sFee','sNote','sRoll','sBirthReg'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['sName','sNameEn','sFather','sFatherEn','sFatherNID','sMother','sMotherEn','sMotherNID','sDOB','sMobile','sFatherMobile','sMotherMobile','sAddress','sFee','sNote','sRoll','sBirthReg'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('sBlood').value='';
   document.getElementById('sCodePreview').value='';
   document.getElementById('sPhotoData').value='';
@@ -2317,6 +2402,8 @@ function editStudent(id) {
   document.getElementById('sGender').value = s.gender||'পুরুষ';
   document.getElementById('sBlood').value = s.blood||'';
   document.getElementById('sMobile').value = s.mobile||'';
+  document.getElementById('sFatherMobile').value = s.fatherMobile||'';
+  document.getElementById('sMotherMobile').value = s.motherMobile||'';
   document.getElementById('sAddress').value = s.address||'';
   document.getElementById('sAdmDate').value = s.admDate||'';
   document.getElementById('sFee').value = s.fee||'';
@@ -2345,6 +2432,8 @@ function editStudent(id) {
     s.gender = document.getElementById('sGender').value;
     s.blood = document.getElementById('sBlood').value;
     s.mobile = document.getElementById('sMobile').value;
+    s.fatherMobile = document.getElementById('sFatherMobile').value;
+    s.motherMobile = document.getElementById('sMotherMobile').value;
     s.address = document.getElementById('sAddress').value;
     s.admDate = document.getElementById('sAdmDate').value;
     s.fee = document.getElementById('sFee').value||0;
@@ -5040,6 +5129,115 @@ function teacherRejectLeave(id) {
   showTeacherProgressPage();
 }
 
+
+// ===================== BULK IMPORT =====================
+var importedRows = [];
+
+function downloadImportTemplate() {
+  const header = 'বাংলা নাম,ইংরেজি নাম,পিতার নাম (বাংলা),পিতার নাম (English),মাতার নাম (বাংলা),মাতার নাম (English),শ্রেণি,রোল,বিভাগ,লিঙ্গ,জন্ম তারিখ (YYYY-MM-DD),ব্লাড গ্রুপ,মোবাইল,পিতার মোবাইল,মাতার মোবাইল,ঠিকানা,পিতার NID,মাতার NID,ভর্তি তারিখ (YYYY-MM-DD),মাসিক বেতন,জন্ম নিবন্ধন,বিশেষ নোট';
+  const sample = 'মোহাম্মদ আলী,Mohammad Ali,আব্দুল করিম,Abdul Karim,ফাতেমা বেগম,Fatema Begum,৭ম,১,সাধারণ,পুরুষ,2015-01-15,B+,01712345678,01712345678,01812345678,গ্রাম: চাঁদপুর,,,,500,,';
+  const csv = '\uFEFF' + header + '\n' + sample;
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'student_import_template.csv';
+  a.click();
+}
+
+function previewImport(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if(ext==='csv') {
+    const reader = new FileReader();
+    reader.onload = function(e) { parseImportCSV(e.target.result.replace(/^\uFEFF/,'')); };
+    reader.readAsText(file, 'UTF-8');
+  } else if(ext==='xlsx'||ext==='xls') {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        parseImportCSV(XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]));
+      } catch(err) { document.getElementById('importErrors').textContent='❌ Excel পড়তে সমস্যা: '+err.message; }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseImportCSV(text) {
+  const lines = text.trim().split('\n').filter(l=>l.trim());
+  if(lines.length < 2) { document.getElementById('importErrors').textContent='ফাইলে কোনো data নেই।'; return; }
+  importedRows = [];
+  const errors = [];
+  for(let i=1; i<lines.length; i++) {
+    const cols = lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+    const row = {
+      name:cols[0]||'', nameEn:cols[1]||'',
+      father:cols[2]||'', fatherEn:cols[3]||'',
+      mother:cols[4]||'', motherEn:cols[5]||'',
+      cls:cols[6]||'', roll:cols[7]||'',
+      branch:cols[8]||'সাধারণ', gender:cols[9]||'পুরুষ',
+      dob:cols[10]||'', blood:cols[11]||'',
+      mobile:cols[12]||'', fatherMobile:cols[13]||'', motherMobile:cols[14]||'',
+      address:cols[15]||'', fatherNID:cols[16]||'', motherNID:cols[17]||'',
+      admDate:cols[18]||new Date().toISOString().split('T')[0],
+      fee:cols[19]||0, birthReg:cols[20]||'', note:cols[21]||''
+    };
+    if(!row.name) { errors.push('সারি '+(i+1)+': নাম নেই'); continue; }
+    if(!row.cls)  { errors.push('সারি '+(i+1)+': ক্লাস নেই ('+row.name+')'); continue; }
+    if(!row.roll) { errors.push('সারি '+(i+1)+': রোল নেই ('+row.name+')'); continue; }
+    if(data.students.find(function(s){ return s.cls===row.cls && String(s.roll)===String(row.roll); })) {
+      errors.push('সারি '+(i+1)+': '+row.cls+' ক্লাসে রোল '+row.roll+' আগে থেকেই আছে ('+row.name+')');
+      continue;
+    }
+    importedRows.push(row);
+  }
+  const preview = document.getElementById('importPreview');
+  preview.style.display = 'block';
+  document.getElementById('importPreviewCount').textContent =
+    '✅ '+importedRows.length+' জন import করা যাবে'+(errors.length?' | ⚠️ '+errors.length+'টি সমস্যা':'');
+  document.getElementById('importPreviewBody').innerHTML = importedRows.map(function(r){
+    return '<tr style="border-bottom:1px solid var(--border);">'+
+      '<td style="padding:5px;">'+r.name+'</td>'+
+      '<td style="padding:5px;">'+r.cls+'</td>'+
+      '<td style="padding:5px;">'+r.roll+'</td>'+
+      '<td style="padding:5px;">'+(r.father||'-')+'</td>'+
+      '<td style="padding:5px;font-family:monospace;font-size:11px;">'+(r.fatherMobile||r.mobile||'-')+'</td></tr>';
+  }).join('');
+  document.getElementById('importErrors').innerHTML = errors.length ? '<b>⚠️ সমস্যা:</b><br>'+errors.join('<br>') : '';
+  document.getElementById('importConfirmBtn').style.display = importedRows.length>0 ? 'inline-flex' : 'none';
+}
+
+function confirmBulkImport() {
+  if(importedRows.length===0) return;
+  var added = 0;
+  importedRows.forEach(function(row) {
+    var student = {
+      id:genId(), code:genStudentCode(row.cls),
+      name:row.name, nameEn:row.nameEn,
+      father:row.father, fatherEn:row.fatherEn, fatherNID:row.fatherNID,
+      mother:row.mother, motherEn:row.motherEn, motherNID:row.motherNID,
+      cls:row.cls, roll:Number(row.roll),
+      branch:row.branch||'সাধারণ', gender:row.gender||'পুরুষ',
+      dob:row.dob, blood:row.blood,
+      mobile:row.mobile, fatherMobile:row.fatherMobile, motherMobile:row.motherMobile,
+      address:row.address,
+      admDate:row.admDate||new Date().toISOString().split('T')[0],
+      fee:Number(row.fee)||0, birthReg:row.birthReg, note:row.note,
+      photo:''
+    };
+    data.students.push(student);
+    added++;
+  });
+  save('students');
+  closeModal('bulkImportModal');
+  renderStudents();
+  importedRows = [];
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('importPreview').style.display = 'none';
+  document.getElementById('importConfirmBtn').style.display = 'none';
+  toast('✅ '+added+' জন শিক্ষার্থী সফলভাবে import হয়েছে!');
+}
 
 function verifyBirthReg() {
   var num = document.getElementById('sBirthReg')?.value?.trim();
