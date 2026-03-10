@@ -418,7 +418,7 @@
               <option value="">শ্রেণি নির্বাচন</option>
             </select>
             <input type="date" id="teacherAttDate" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);" onchange="loadTeacherAtt()">
-            <div id="teacherAttTakenByWrap" style="font-size:13px;color:var(--primary);font-weight:600;"></div>
+            <div id="teacherAttTakenByWrap" style="font-size:12px;background:var(--primary-ultra-light);color:var(--primary);font-weight:600;padding:4px 10px;border-radius:20px;"></div>
             <button class="btn btn-primary btn-sm" onclick="saveTeacherAtt()">💾 সংরক্ষণ</button>
           </div>
         </div>
@@ -5517,20 +5517,26 @@ function showPeonStockPage() {
 
 // ===================== TEACHER ATTENDANCE PAGE =====================
 function showTeacherAttPage() {
-  const cls = currentUser.cls;
   document.getElementById('header').innerHTML = `
-    <div class="header-title" style="font-size:14px;">👤 ${currentUser.name} ${cls?'| শ্রেণি: '+cls:''}</div>
+    <div class="header-title" style="font-size:14px;">👤 ${currentUser.name}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button class="header-btn btn-primary" onclick="showTeacherDash('att')" style="font-size:12px;">✅ হাজিরা</button>
       <button class="header-btn btn-primary" onclick="showTeacherDash('checkin')" style="font-size:12px;">🕐 চেক-ইন/আউট</button>
-      <button class="header-btn btn-primary" onclick="showTeacherProgressPage()" style="font-size:12px;">📈 প্রগ্রেস</button>
-      <button class="header-btn btn-primary" onclick="showTeacherDash('myclass')" style="font-size:12px;">👨‍🎓 আমার ক্লাস</button>
+      <button class="header-btn btn-primary" onclick="showTeacherProfilePage()" style="font-size:12px;">👤 আমার প্রোফাইল</button>
       <button class="header-btn btn-outline" onclick="doLogout()" style="background:#fff;border:1.5px solid var(--border);color:var(--text);font-size:12px;">🚪 লগআউট</button>
     </div>`;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-teacher-att').classList.add('active');
   renderTeacherAttPage();
 }
+
+function showTeacherProfilePage() {
+  // showTeacherProgressPage already renders everything we need
+  // Just update header to show profile button as active
+  showTeacherProgressPage();
+}
+
+function renderTeacherProgressHTML(t) { return ''; } // stub, used by showTeacherProgressPage
 
 function showTeacherDash(tab) {
   if(tab==='att') {
@@ -5541,31 +5547,22 @@ function showTeacherDash(tab) {
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-staff-checkin').classList.add('active');
     verifyWiFiAndRender();
-  } else if(tab==='myclass') {
-    showTeacherProgressPage();
-    // scroll to myclass section
-    setTimeout(function(){ var el=document.querySelector('[data-section="myclass"]'); if(el) el.scrollIntoView({behavior:'smooth'}); }, 300);
   }
 }
 
 function renderTeacherAttPage() {
-  const cls = currentUser.cls;
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('teacherAttDate').value = today;
-  if(cls) {
-    // আগে populate করো, তারপর value force করো
-    const sel = document.getElementById('teacherAttClassSel');
-    sel.style.display = 'none';
-    // option না থাকলে add করো
-    if(!Array.from(sel.options).some(o=>o.value===cls)) {
-      const opt = document.createElement('option');
-      opt.value = cls; opt.textContent = cls;
-      sel.appendChild(opt);
-    }
-    sel.value = cls;
+  // সব ক্লাস দেখাও — যেকোনো শিক্ষক যেকোনো ক্লাসের হাজিরা নিতে পারবে
+  const sel = document.getElementById('teacherAttClassSel');
+  sel.style.display = '';
+  const classes = data.settings.classes || [];
+  sel.innerHTML = '<option value="">শ্রেণি নির্বাচন করুন</option>' +
+    classes.map(c => `<option value="${c}"${c===currentUser.cls?' selected':''}>${c}</option>`).join('');
+  // assigned class থাকলে auto-load
+  if(currentUser.cls) {
+    sel.value = currentUser.cls;
     loadTeacherAtt();
-  } else {
-    document.getElementById('teacherAttGrid').innerHTML='<div class="alert alert-danger">আপনার কোনো শ্রেণি নির্ধারিত নেই। Admin-কে জানান।</div>';
   }
 }
 
