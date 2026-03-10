@@ -68,10 +68,10 @@ tr:hover td{background:#f8fffe;}
   <!-- Search -->
   <div class="card" id="searchCard">
     <div class="card-title">🔍 শিক্ষার্থী খুঁজুন</div>
-    <div class="search-area">
-      <input id="searchInput" type="text" placeholder="ইউনিক কোড লিখুন (যেমন: AN-01-001)" autocomplete="off">
-      <button class="btn btn-primary" onclick="searchStudent()">খুঁজুন</button>
+    <div style="margin-top:8px;">
+      <input id="searchInput" type="text" placeholder="ইউনিক কোড লিখুন (যেমন: AN-PL-001-X7K2)" autocomplete="off" style="width:100%;padding:11px 14px;border:1.5px solid #d0ddd5;border-radius:10px;font-family:monospace;font-size:14px;box-sizing:border-box;letter-spacing:1px;">
     </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:10px;padding:12px;" onclick="searchStudent()">খুঁজুন</button>
     <div id="searchError" style="color:var(--danger);font-size:13px;margin-top:8px;display:none;"></div>
     <p style="font-size:12px;color:#888;margin-top:8px;">আইডি কার্ডের কোডটি এখানে লিখুন অথবা QR কোড স্ক্যান করুন।</p>
   </div>
@@ -104,6 +104,8 @@ tr:hover td{background:#f8fffe;}
       <button class="tab active" onclick="switchTab('attendance',this)">📅 উপস্থিতি</button>
       <button class="tab" onclick="switchTab('results',this)">📊 ফলাফল</button>
       <button class="tab" onclick="switchTab('fees',this)">💳 ফী ও বকেয়া</button>
+      <button class="tab" onclick="switchTab('remarks',this)">💬 শিক্ষকের মন্তব্য</button>
+      <button class="tab" id="leaveTabBtn" onclick="switchTab('leave',this)">📝 ছুটির আবেদন</button>
       <button class="tab" onclick="switchTab('payment',this)">💰 পেমেন্ট করুন</button>
     </div>
 
@@ -139,6 +141,56 @@ tr:hover td{background:#f8fffe;}
       </div>
     </div>
 
+    <!-- Tab: Remarks -->
+    <div id="tab-remarks" class="tab-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">💬 শিক্ষকের মন্তব্য</div>
+        <div id="remarksBody"><p style="text-align:center;color:#888;padding:20px;">লোড হচ্ছে...</p></div>
+      </div>
+    </div>
+
+    <!-- Tab: Leave Application -->
+    <div id="tab-leave" class="tab-content" style="display:none;">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">📝 নতুন ছুটির আবেদন</div>
+        <div style="margin-top:12px;">
+          <div style="margin-bottom:10px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">ছুটির ধরন</label>
+            <select id="parentLeaveType" style="width:100%;padding:9px;border:1.5px solid #d0ddd5;border-radius:8px;font-family:inherit;font-size:13px;">
+              <option>অসুস্থতাজনিত ছুটি</option>
+              <option>ব্যক্তিগত ছুটি</option>
+              <option>জরুরি ছুটি</option>
+              <option>পারিবারিক ছুটি</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">ছুটির শুরু *</label>
+              <input id="parentLeaveFrom" type="date" style="width:100%;padding:9px;border:1.5px solid #d0ddd5;border-radius:8px;font-family:inherit;font-size:13px;">
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">ছুটির শেষ *</label>
+              <input id="parentLeaveTo" type="date" style="width:100%;padding:9px;border:1.5px solid #d0ddd5;border-radius:8px;font-family:inherit;font-size:13px;">
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">কারণ *</label>
+            <input id="parentLeaveReason" type="text" placeholder="সংক্ষিপ্ত কারণ" style="width:100%;padding:9px;border:1.5px solid #d0ddd5;border-radius:8px;font-family:inherit;font-size:13px;">
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">বিস্তারিত</label>
+            <textarea id="parentLeaveDetails" rows="3" placeholder="বিস্তারিত লিখুন..." style="width:100%;padding:9px;border:1.5px solid #d0ddd5;border-radius:8px;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+          </div>
+          <button onclick="submitParentLeave()" style="width:100%;padding:12px;background:#1a4a2e;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">✅ আবেদন জমা দিন</button>
+        </div>
+      </div>
+      <!-- আগের আবেদনসমূহ -->
+      <div class="card">
+        <div class="card-title">📋 আগের আবেদনসমূহ</div>
+        <div id="parentLeaveHistory" style="margin-top:10px;"><p style="text-align:center;color:#888;padding:16px;">লোড হচ্ছে...</p></div>
+      </div>
+    </div>
+
     <!-- Tab: Payment -->
     <div id="tab-payment" class="tab-content" style="display:none;">
       <div class="card">
@@ -163,13 +215,13 @@ var firebaseConfig = {
 if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
 
-var gData = { settings:{}, students:[], attendance:{}, results:[], feePayments:[], onlinePayments:[] };
+var gData = { settings:{}, students:[], attendance:{}, results:[], feePayments:[], onlinePayments:[], studentRemarks:[], leaves:[] };
 var gStudent = null;
 var PAYMENT_METHODS = { bkash:'bKash', nagad:'নগদ', bank:'ব্যাংক ট্রান্সফার' };
 var PAYMENT_NUMBERS = { bkash:'01XXXXXXXXX', nagad:'01XXXXXXXXX', bank:'AC: XXXXXXXXXXXX' };
 
 async function loadAllData() {
-  var keys = ['settings','students','attendance','results','feePayments','onlinePayments'];
+  var keys = ['settings','students','attendance','results','feePayments','onlinePayments','studentRemarks','leaves'];
   for(var i=0;i<keys.length;i++){
     try {
       var doc = await db.collection('madrasa').doc(keys[i]).get();
@@ -188,15 +240,21 @@ async function loadAllData() {
 function searchStudent() {
   var code = document.getElementById('searchInput').value.trim().toUpperCase();
   var errEl = document.getElementById('searchError');
-  if(!code){ errEl.style.display='block'; errEl.textContent='কোড লিখুন।'; return; }
   errEl.style.display='none';
+
+  if(!code){ errEl.style.display='block'; errEl.textContent='কোড লিখুন।'; return; }
+
   document.getElementById('loader').style.display='block';
   document.getElementById('studentProfile').style.display='none';
-  // slight delay for UX
+
   setTimeout(function(){
-    var s = gData.students.find(function(x){ return (x.code||'').toUpperCase()===code; });
     document.getElementById('loader').style.display='none';
-    if(!s){ errEl.style.display='block'; errEl.textContent='❌ এই কোডে কোনো শিক্ষার্থী পাওয়া যায়নি।'; return; }
+    var s = gData.students.find(function(x){ return (x.code||'').toUpperCase()===code; });
+    if(!s){
+      errEl.style.display='block';
+      errEl.textContent='❌ এই কোডে কোনো শিক্ষার্থী পাওয়া যায়নি।';
+      return;
+    }
     gStudent = s;
     showStudentProfile(s);
   }, 400);
@@ -225,14 +283,130 @@ function switchTab(tab, btn) {
   if(tab==='results') renderResults(gStudent);
   if(tab==='fees') renderFees(gStudent);
   if(tab==='payment') renderPaymentForm(gStudent);
+  if(tab==='remarks') renderRemarks(gStudent);
+  if(tab==='leave') renderParentLeave(gStudent);
+}
+
+function renderRemarks(s) {
+  var remarks = (gData.studentRemarks||[]).filter(function(r){
+    return r.studentId===s.id && r.status==='approved';
+  }).sort(function(a,b){ return b.date.localeCompare(a.date); });
+
+  // Mark as read
+  var updated = false;
+  remarks.forEach(function(r){
+    if(!r.parentRead) { r.parentRead=true; updated=true; }
+  });
+  if(updated) {
+    db.collection('madrasa').doc('studentRemarks').set({value: gData.studentRemarks});
+  }
+
+  var CATEGORIES = { 'পড়াশোনা':'📚','আচরণ':'😊','সমস্যা':'⚠️','পরিকল্পনা':'📋','সামগ্রিক':'🌟' };
+  var el = document.getElementById('remarksBody');
+  if(remarks.length===0) {
+    el.innerHTML='<div style="text-align:center;padding:30px;color:#888;"><div style="font-size:40px;margin-bottom:10px;">💬</div><p>এখনো কোনো মন্তব্য নেই।</p></div>';
+    return;
+  }
+
+  el.innerHTML = remarks.map(function(r){
+    var icon = CATEGORIES[r.category]||'💬';
+    return '<div style="background:#f8fdf9;border:1.5px solid #d0ddd5;border-radius:10px;padding:14px;margin-bottom:12px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+        '<div style="font-weight:700;color:#1a4a2e;">'+icon+' '+r.category+'</div>'+
+        '<div style="font-size:11px;color:#888;">'+r.date+'</div>'+
+      '</div>'+
+      '<div style="font-size:13px;line-height:1.7;margin-bottom:10px;">'+r.text+'</div>'+
+      '<div style="font-size:11px;color:#888;">শিক্ষক: '+r.teacherName+'</div>'+
+      // Reply section
+      (r.parentReply ? '<div style="background:#fff3cd;border-radius:6px;padding:8px;margin-top:8px;font-size:12px;"><b>আপনার উত্তর:</b> '+r.parentReply+'</div>' :
+        '<div style="margin-top:10px;">'+
+          '<textarea id="reply_'+r.id+'" rows="2" style="width:100%;padding:8px;border:1.5px solid #d0ddd5;border-radius:6px;font-family:inherit;font-size:12px;" placeholder="উত্তর দিন (ঐচ্ছিক)..."></textarea>'+
+          '<button onclick="sendReply(\''+r.id+'\')" style="margin-top:4px;padding:4px 14px;background:#1a4a2e;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:12px;cursor:pointer;">📤 পাঠান</button>'+
+        '</div>')+
+    '</div>';
+  }).join('');
+}
+
+function sendReply(remarkId) {
+  var replyText = document.getElementById('reply_'+remarkId).value.trim();
+  if(!replyText) return;
+  var r = (gData.studentRemarks||[]).find(function(x){ return x.id===remarkId; });
+  if(r) {
+    r.parentReply = replyText;
+    db.collection('madrasa').doc('studentRemarks').set({value: gData.studentRemarks});
+    renderRemarks(gStudent);
+    alert('উত্তর পাঠানো হয়েছে। শিক্ষক দেখতে পাবেন।');
+  }
+}
+
+function genIdParent() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+}
+
+function submitParentLeave() {
+  var s = gStudent;
+  if(!s) return;
+  var from = document.getElementById('parentLeaveFrom').value;
+  var to = document.getElementById('parentLeaveTo').value;
+  var reason = document.getElementById('parentLeaveReason').value.trim();
+  var ltype = document.getElementById('parentLeaveType').value;
+  var details = document.getElementById('parentLeaveDetails').value.trim();
+  if(!from||!to) { alert('ছুটির তারিখ দিন!'); return; }
+  if(!reason) { alert('কারণ লিখুন!'); return; }
+  var today = new Date().toISOString().split('T')[0];
+  var days = Math.ceil((new Date(to)-new Date(from))/(1000*60*60*24))+1;
+  var isRetroactive = to < today;
+  var lv = {
+    id: genIdParent(),
+    name: s.name, desig: s.cls,
+    reason: reason, ltype: ltype,
+    from: from, to: to, days: days,
+    details: details, date: today,
+    applicantType: 'student', applicantId: s.id,
+    status: 'pending_teacher',
+    isRetroactive: isRetroactive, isEmergency: ltype==='জরুরি ছুটি',
+    teacherApproved:false, teacherApprovedDate:'',
+    managementApproved:false, managementApprovedDate:'',
+    rejectedReason:'', source:'parent_portal'
+  };
+  if(!gData.leaves) gData.leaves=[];
+  gData.leaves.push(lv);
+  db.collection('madrasa').doc('leaves').set({value: gData.leaves}).then(function(){
+    alert('✅ ছুটির আবেদন জমা হয়েছে!\n\nপ্রথমে ক্লাস শিক্ষক, তারপর Management অনুমোদন করলে ছুটি নিশ্চিত হবে।');
+    document.getElementById('parentLeaveFrom').value='';
+    document.getElementById('parentLeaveTo').value='';
+    document.getElementById('parentLeaveReason').value='';
+    document.getElementById('parentLeaveDetails').value='';
+    renderParentLeave(gStudent);
+  }).catch(function(e){ alert('সমস্যা হয়েছে: '+e.message); });
+}
+
+function renderParentLeave(s) {
+  var el = document.getElementById('parentLeaveHistory');
+  if(!el) return;
+  var myLeaves = (gData.leaves||[]).filter(function(lv){ return lv.applicantId===s.id; }).slice().reverse();
+  if(myLeaves.length===0) { el.innerHTML='<p style="text-align:center;color:#888;padding:16px;">কোনো আবেদন নেই।</p>'; return; }
+  var statusLabel = {'pending_teacher':'⏳ শিক্ষক অনুমোদনের অপেক্ষায়','pending_management':'⏳ Management অনুমোদনের অপেক্ষায়','approved':'✅ অনুমোদিত','rejected':'❌ বাতিল'};
+  var statusColor = {'pending_teacher':'#fff3cd','pending_management':'#e3f2fd','approved':'#d4edda','rejected':'#fde8e8'};
+  el.innerHTML = myLeaves.map(function(lv){
+    return '<div style="background:'+( statusColor[lv.status]||'#f9f9f9')+';border-radius:8px;padding:12px;margin-bottom:8px;font-size:13px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+        '<div><b>'+lv.ltype+'</b> — '+lv.from+' থেকে '+lv.to+' ('+lv.days+' দিন)</div>'+
+        '<div style="font-size:11px;font-weight:700;">'+( statusLabel[lv.status]||lv.status)+'</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:#555;margin-top:4px;">কারণ: '+(lv.reason||'-')+'</div>'+
+      (lv.rejectedReason?'<div style="font-size:11px;color:#c0392b;margin-top:4px;">বাতিলের কারণ: '+lv.rejectedReason+'</div>':'')+
+    '</div>';
+  }).join('');
 }
 
 function renderAttendance(s) {
   var attDays = Object.entries(gData.attendance).filter(function(e){ return e[0].startsWith(s.cls+'_'); });
   attDays.sort(function(a,b){ return a[0].localeCompare(b[0]); });
   var present = attDays.filter(function(e){ return e[1][s.id]==='উপস্থিত'; }).length;
+  var leave = attDays.filter(function(e){ return e[1][s.id]==='ছুটি'; }).length;
   var total = attDays.length;
-  var absent = total - present;
+  var absent = total - present - leave;
   var pct = total>0?Math.round(present/total*100):0;
   var color = pct>=75?'#155724':pct>=60?'#856404':'#721c24';
 
@@ -240,6 +414,7 @@ function renderAttendance(s) {
     '<div class="stat-box"><div class="n">'+total+'</div><div class="l">মোট দিন</div></div>'+
     '<div class="stat-box" style="background:var(--primary);"><div class="n">'+present+'</div><div class="l">উপস্থিত</div></div>'+
     '<div class="stat-box danger"><div class="n">'+absent+'</div><div class="l">অনুপস্থিত</div></div>'+
+    '<div class="stat-box" style="background:#c9a227;"><div class="n">'+leave+'</div><div class="l">ছুটি</div></div>'+
     '<div class="stat-box accent"><div class="n">'+pct+'%</div><div class="l">হাজিরা হার</div></div>';
   document.getElementById('attPct').textContent = pct+'%';
   document.getElementById('attPct').style.color = color;

@@ -380,6 +380,7 @@
     <div class="nav-item" onclick="showPage('teachers')"><span class="nav-icon">👨‍🏫</span> শিক্ষক/স্টাফ</div>
     <div class="nav-item" onclick="showPage('payroll')"><span class="nav-icon">💵</span> পেরোল</div>
     <div class="nav-item" onclick="showPage('leave')"><span class="nav-icon">📝</span> ছুটির আবেদন</div>
+    <div class="nav-item" onclick="showPage('remarks')"><span class="nav-icon">💬</span> মন্তব্য অনুমোদন</div>
     <div class="nav-section">একাডেমিক</div>
     <div class="nav-item" onclick="showPage('routine')"><span class="nav-icon">🗓️</span> ক্লাস রুটিন</div>
     <div class="nav-item" onclick="showPage('syllabus')"><span class="nav-icon">📚</span> সিলেবাস</div>
@@ -417,6 +418,7 @@
               <option value="">শ্রেণি নির্বাচন</option>
             </select>
             <input type="date" id="teacherAttDate" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);" onchange="loadTeacherAtt()">
+            <div id="teacherAttTakenByWrap" style="font-size:13px;color:var(--primary);font-weight:600;"></div>
             <button class="btn btn-primary btn-sm" onclick="saveTeacherAtt()">💾 সংরক্ষণ</button>
           </div>
         </div>
@@ -489,6 +491,16 @@
           </div>
           <div class="card-body" id="pendingPaymentsList">
             <p style="color:var(--text-muted);text-align:center;font-size:13px;">কোনো পেমেন্ট অনুমোদনের অপেক্ষায় নেই।</p>
+          </div>
+        </div>
+        <!-- আজকের অনুপস্থিত তালিকা -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-header">
+            <span class="card-title">❌ আজকের অনুপস্থিত শিক্ষার্থী</span>
+            <span id="todayAbsentBadge" style="background:var(--danger);color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;display:none;"></span>
+          </div>
+          <div class="card-body" id="todayAbsentList">
+            <p style="color:var(--text-muted);text-align:center;font-size:13px;">হাজিরা নেওয়ার পর এখানে দেখা যাবে।</p>
           </div>
         </div>
       </div>
@@ -577,6 +589,9 @@
               <option value="">শ্রেণি নির্বাচন করুন</option>
             </select>
             <input type="date" id="attDate" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);" onchange="loadAttendance()">
+            <select id="attTakenBy" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">
+              <option value="">👤 কে নিচ্ছেন</option>
+            </select>
             <button class="btn btn-primary btn-sm" onclick="saveAttendance()">✅ সংরক্ষণ</button>
           </div>
         </div>
@@ -650,34 +665,22 @@
 
     <!-- LEAVE -->
     <div id="page-leave" class="page">
+      <!-- Admin: ছুটির আবেদন তালিকা -->
       <div class="card mb-16">
         <div class="card-header">
-          <span class="card-title">📝 ছুটির আবেদন ফর্ম</span>
-          <button class="btn btn-accent btn-sm" onclick="printLeave()">🖨️ প্রিন্ট করুন</button>
+          <span class="card-title">📝 ছুটির আবেদন ব্যবস্থাপনা</span>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addLeaveModal')">+ নতুন আবেদন</button>
         </div>
         <div class="card-body">
-          <div class="form-grid">
-            <div class="form-group"><label>আবেদনকারীর নাম</label><input id="leaveName" type="text" placeholder="পূর্ণ নাম"></div>
-            <div class="form-group"><label>পদবী / শ্রেণি</label><input id="leaveDesig" type="text" placeholder="যেমন: শিক্ষক / ৭ম শ্রেণি"></div>
-            <div class="form-group"><label>ছুটির কারণ</label><input id="leaveReason" type="text" placeholder="ছুটির কারণ লিখুন"></div>
-            <div class="form-group"><label>ছুটির ধরন</label>
-              <select id="leaveType"><option>অসুস্থতাজনিত ছুটি</option><option>ব্যক্তিগত ছুটি</option><option>জরুরি ছুটি</option><option>বার্ষিক ছুটি</option><option>পারিবারিক ছুটি</option></select>
-            </div>
-            <div class="form-group"><label>ছুটির শুরু</label><input id="leaveFrom" type="date"></div>
-            <div class="form-group"><label>ছুটির শেষ</label><input id="leaveTo" type="date"></div>
-            <div class="form-group full"><label>বিস্তারিত</label><textarea id="leaveDetails" placeholder="বিস্তারিত বিবরণ লিখুন..."></textarea></div>
+          <div class="tabs" style="margin-bottom:14px;">
+            <div class="tab active" onclick="filterLeaveStatus('all',this)">সব</div>
+            <div class="tab" onclick="filterLeaveStatus('pending_teacher',this)">⏳ শিক্ষক অনুমোদন</div>
+            <div class="tab" onclick="filterLeaveStatus('pending_management',this)">⏳ Management অনুমোদন</div>
+            <div class="tab" onclick="filterLeaveStatus('approved',this)">✅ অনুমোদিত</div>
+            <div class="tab" onclick="filterLeaveStatus('rejected',this)">❌ বাতিল</div>
           </div>
-          <div class="btn-group mt-16">
-            <button class="btn btn-primary" onclick="saveLeave()">💾 আবেদন সংরক্ষণ</button>
-            <button class="btn btn-accent" onclick="printLeave()">🖨️ প্রিন্ট করুন</button>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📋 আবেদনের তালিকা</span></div>
-        <div class="card-body">
           <div class="table-wrap"><table>
-            <thead><tr><th>নাম</th><th>পদবী</th><th>কারণ</th><th>ধরন</th><th>শুরু</th><th>শেষ</th><th>দিন</th><th>অ্যাকশন</th></tr></thead>
+            <thead><tr><th>আবেদনকারী</th><th>ধরন</th><th>কারণ</th><th>শুরু</th><th>শেষ</th><th>দিন</th><th>স্ট্যাটাস</th><th>কাজ</th></tr></thead>
             <tbody id="leaveBody"></tbody>
           </table></div>
         </div>
@@ -918,6 +921,13 @@
       <div id="teacherSelfProfileBody"></div>
     </div>
 
+    <!-- REMARKS APPROVAL PAGE -->
+    <div id="page-remarks" class="page">
+      <div id="remarksApprovalBody">
+        <p class="text-muted" style="text-align:center;padding:30px;">লোড হচ্ছে...</p>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div id="page-settings" class="page">
       <div class="card">
@@ -929,6 +939,8 @@
             <div class="form-group"><label>সংক্ষিপ্ত পরিচয়</label><input id="setInstSub" type="text" placeholder="যেমন: দাখিল মাদ্রাসা, ঢাকা"></div>
             <div class="form-group"><label>ঠিকানা</label><input id="setAddress" type="text" placeholder="গ্রাম, উপজেলা, জেলা"></div>
             <div class="form-group"><label>মোবাইল</label><input id="setPhone" type="text" placeholder="০১XXXXXXXXX"></div>
+            <div class="form-group"><label>ইমেইল</label><input id="setEmail" type="email" placeholder="madrasa@example.com"></div>
+            <div class="form-group"><label>ওয়েবসাইট</label><input id="setWebsite" type="text" placeholder="www.example.com"></div>
             <div class="form-group"><label>ইআইআইএন নম্বর</label><input id="setEIIN" type="text" placeholder="EIIN"></div>
             <div class="form-group"><label>প্রধান শিক্ষকের নাম</label><input id="setPrincipal" type="text" placeholder="প্রধান শিক্ষকের নাম"></div>
           </div>
@@ -1060,6 +1072,14 @@
         <div class="form-group"><label>মাতার NID নম্বর</label><input id="sMotherNID" type="text" style="font-family:monospace;" placeholder="মাতার জাতীয় পরিচয়পত্র নম্বর"></div>
         <div class="form-group"><label>ভর্তি তারিখ</label><input id="sAdmDate" type="date"></div>
         <div class="form-group"><label>মাসিক বেতন (৳)</label><input id="sFee" type="number" placeholder="০"></div>
+        <div class="form-group full">
+          <label>🪪 জন্ম নিবন্ধন নম্বর</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="sBirthReg" type="text" placeholder="১৭ সংখ্যার জন্ম নিবন্ধন নম্বর" style="font-family:monospace;flex:1;" maxlength="20">
+            <button type="button" class="btn btn-accent btn-sm" onclick="verifyBirthReg()" style="white-space:nowrap;">🔍 যাচাই করুন</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">bdris.gov.bd সাইটে যাচাই করা হবে।</div>
+        </div>
         <div class="form-group full"><label>বিশেষ নোট</label><input id="sNote" type="text" placeholder="ঐচ্ছিক"></div>
       </div>
     </div>
@@ -1122,6 +1142,48 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('addTeacherModal')">বাতিল</button>
       <button class="btn btn-primary" onclick="addTeacher()">✅ যোগ করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Leave Modal -->
+<div id="addLeaveModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📝 ছুটির আবেদন</span><button class="modal-close" onclick="closeModal('addLeaveModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>আবেদনকারীর ধরন *</label>
+          <select id="leaveApplicantType" onchange="updateLeaveApplicantList()">
+            <option value="student">শিক্ষার্থী</option>
+            <option value="teacher">শিক্ষক/স্টাফ</option>
+          </select>
+        </div>
+        <div class="form-group"><label>আবেদনকারী *</label>
+          <select id="leaveApplicantId" onchange="fillLeaveApplicant()">
+            <option value="">নির্বাচন করুন</option>
+          </select>
+        </div>
+        <div class="form-group"><label>আবেদনকারীর নাম</label><input id="leaveName" type="text" placeholder="স্বয়ংক্রিয় পূরণ হবে"></div>
+        <div class="form-group"><label>পদবী / শ্রেণি</label><input id="leaveDesig" type="text" placeholder="স্বয়ংক্রিয় পূরণ হবে"></div>
+        <div class="form-group"><label>ছুটির ধরন</label>
+          <select id="leaveType">
+            <option>অসুস্থতাজনিত ছুটি</option>
+            <option>ব্যক্তিগত ছুটি</option>
+            <option>জরুরি ছুটি</option>
+            <option>পারিবারিক ছুটি</option>
+            <option>বার্ষিক ছুটি</option>
+          </select>
+        </div>
+        <div class="form-group"><label>ছুটির কারণ *</label><input id="leaveReason" type="text" placeholder="সংক্ষিপ্ত কারণ"></div>
+        <div class="form-group"><label>ছুটির শুরু *</label><input id="leaveFrom" type="date"></div>
+        <div class="form-group"><label>ছুটির শেষ *</label><input id="leaveTo" type="date"></div>
+        <div class="form-group full"><label>বিস্তারিত</label><textarea id="leaveDetails" rows="3" placeholder="বিস্তারিত বিবরণ লিখুন..."></textarea></div>
+      </div>
+      <div id="leaveWarning" style="display:none;" class="alert alert-warning"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addLeaveModal')">বাতিল</button>
+      <button class="btn btn-primary" onclick="saveLeave()">✅ আবেদন জমা</button>
     </div>
   </div>
 </div>
@@ -1650,6 +1712,7 @@ var data = {
   results: [], finance: [], notices: [],
   leaves: [], routine: [], syllabus: [],
   feePayments: [], staffCheckins: [], payrollAdj: [], stock: [], letters: [], onlinePayments: [],
+  studentRemarks: [],
 };
 
 // পুরনো রেকর্ডে ইউনিক কোড না থাকলে assign করো
@@ -1661,19 +1724,19 @@ function migrateOldCodes() {
   };
   var studentChanged = false, teacherChanged = false;
 
-  // ছাত্রদের কোড
-  // ক্লাস অনুযায়ী counter রাখো
+  // ছাত্রদের কোড — নতুন কোড নেই বা পুরনো format (random suffix নেই)
   var clsCounters = {};
   data.students.forEach(function(s) {
-    if(!s.code) {
+    var needsUpdate = !s.code || s.code.split('-').length < 4;
+    if(needsUpdate) {
       var ca = clsAbbr(s.cls||'XX');
       clsCounters[s.cls] = clsCounters[s.cls] || 0;
-      // count existing codes for this class
       if(clsCounters[s.cls] === 0) {
-        clsCounters[s.cls] = data.students.filter(function(x){ return x.cls===s.cls && x.code; }).length;
+        clsCounters[s.cls] = data.students.filter(function(x){ return x.cls===s.cls && x.code && x.code.split('-').length>=4; }).length;
       }
       clsCounters[s.cls]++;
-      s.code = abbr + '-' + ca + '-' + String(clsCounters[s.cls]).padStart(3,'0');
+      var rand = genRandomSuffix();
+      s.code = abbr + '-' + ca + '-' + String(clsCounters[s.cls]).padStart(3,'0') + '-' + rand;
       studentChanged = true;
     }
   });
@@ -1700,7 +1763,7 @@ function migrateOldCodes() {
 // Firebase থেকে ডেটা লোড করুন
 async function loadFromFirebase() {
   showLoading(true);
-  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments'];
+  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks'];
   for(const k of keys) {
     try {
       const snap = await db.collection('madrasa').doc(k).get();
@@ -1817,7 +1880,7 @@ var pageTitles = {
   dashboard:'ড্যাশবোর্ড', students:'শিক্ষার্থী ব্যবস্থাপনা', attendance:'উপস্থিতি',
   results:'পরীক্ষার ফলাফল', teachers:'শিক্ষক ও স্টাফ', leave:'ছুটির আবেদন',
   routine:'ক্লাস রুটিন', syllabus:'সিলেবাস', exampaper:'প্রশ্নপত্র তৈরি',
-  finance:'আয়-ব্যয় হিসাব', notice:'বিজ্ঞপ্তি', letters:'📜 পত্র ও প্রমাণপত্র', idcard:'আইডি কার্ড', settings:'সেটিংস', payroll:'💵 পে-রোল', stock:'📦 মালামাল স্টক', fee:'💳 ফী আদায়'
+  finance:'আয়-ব্যয় হিসাব', notice:'বিজ্ঞপ্তি', letters:'📜 পত্র ও প্রমাণপত্র', idcard:'আইডি কার্ড', settings:'সেটিংস', payroll:'💵 পে-রোল', stock:'📦 মালামাল স্টক', fee:'💳 ফী আদায়', remarks:'💬 শিক্ষার্থী মন্তব্য অনুমোদন'
 };
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1843,6 +1906,7 @@ function showPage(id) {
   if(id==='fee') { populateFeeClassFilter(); renderFeePage(); }
   if(id==='idcard') populateIDDropdown();
   if(id==='settings') loadSettings();
+  if(id==='remarks') renderRemarksApproval();
   // Close sidebar on mobile
   document.getElementById('sidebar').classList.remove('open');
 }
@@ -1866,7 +1930,15 @@ function populateClassDropdowns() {
     if(val) el.value = val;
   });
 }
-function populateAttDropdowns() { populateClassDropdowns(); }
+function populateAttDropdowns() {
+  populateClassDropdowns();
+  // "কে হাজিরা নিচ্ছেন" dropdown populate
+  const el = document.getElementById('attTakenBy');
+  if(el) {
+    const teachers = (data.teachers||[]).filter(t=>t.type==='শিক্ষক'||t.type==='প্রিন্সিপাল'||t.type==='ভাইস প্রিন্সিপাল');
+    el.innerHTML = '<option value="">👤 কে নিচ্ছেন</option>' + teachers.map(t=>`<option value="${t.id}">${t.name} (${t.desig||t.type})</option>`).join('');
+  }
+}
 function populateRoutineDropdowns() {
   populateClassDropdowns();
   const rc = document.getElementById('rClass');
@@ -1940,7 +2012,62 @@ function renderDashboard() {
 
   // অনলাইন পেমেন্ট pending
   renderPendingPayments();
+  // আজকের অনুপস্থিত
+  renderTodayAbsent();
 }
+
+function renderTodayAbsent() {
+  var today = new Date().toISOString().split('T')[0];
+  var absentStudents = [];
+  // সব ক্লাসের আজকের attendance দেখো
+  Object.entries(data.attendance).forEach(function([key, val]) {
+    if(!key.endsWith('_'+today)) return;
+    var cls = key.replace('_'+today,'');
+    Object.entries(val).forEach(function([sid, status]) {
+      if(sid.startsWith('_')) return; // skip metadata
+      if(status==='অনুপস্থিত') {
+        var s = (data.students||[]).find(function(x){ return x.id===sid; });
+        if(s) absentStudents.push({...s, cls});
+      }
+    });
+  });
+
+  var badge = document.getElementById('todayAbsentBadge');
+  var list = document.getElementById('todayAbsentList');
+  if(!badge||!list) return;
+
+  if(absentStudents.length===0) {
+    badge.style.display='none';
+    list.innerHTML='<p style="color:var(--text-muted);text-align:center;font-size:13px;">আজ কোনো অনুপস্থিতি রেকর্ড নেই।</p>';
+    return;
+  }
+  badge.style.display='inline-block';
+  badge.textContent = absentStudents.length+' জন অনুপস্থিত';
+
+  list.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;text-align:left;">নাম</th>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;">শ্রেণি</th>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;">রোল</th>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;">পিতার নাম</th>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;">মোবাইল</th>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;">কাজ</th>'+
+    '</tr></thead><tbody>'+
+    absentStudents.map(function(s){
+      return '<tr>'+
+        '<td style="padding:8px;font-weight:600;">'+s.name+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+s.cls+'</td>'+
+        '<td style="padding:8px;text-align:center;">'+s.roll+'</td>'+
+        '<td style="padding:8px;">'+( s.father||'-')+'</td>'+
+        '<td style="padding:8px;font-family:monospace;">'+(s.mobile||'-')+'</td>'+
+        '<td style="padding:8px;">'+
+          (s.mobile?'<a href="tel:'+s.mobile+'" class="btn btn-primary btn-sm" style="font-size:11px;">📞 কল</a>':'-')+
+        '</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+}
+
 
 function renderPendingPayments() {
   var pending = (data.onlinePayments||[]).filter(function(p){return p.status==='pending';});
@@ -2065,11 +2192,18 @@ function clsAbbr(cls) {
   // custom class → first 2 uppercase letters
   return cls.replace(/[^A-Za-z0-9]/g,'').slice(0,2).toUpperCase()||'XX';
 }
+function genRandomSuffix() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for(let i=0;i<4;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
 function genStudentCode(cls) {
   const abbr = (data.settings.abbr||'AN').toUpperCase();
   const ca = clsAbbr(cls);
   const count = data.students.filter(s=>s.cls===cls).length + 1;
-  return `${abbr}-${ca}-${String(count).padStart(3,'0')}`;
+  const rand = genRandomSuffix();
+  return `${abbr}-${ca}-${String(count).padStart(3,'0')}-${rand}`;
 }
 function previewStudentCode() {
   const cls = document.getElementById('sClass').value;
@@ -2100,11 +2234,12 @@ function addStudent() {
     admDate:document.getElementById('sAdmDate').value||new Date().toISOString().split('T')[0],
     fee:document.getElementById('sFee').value||0, note:document.getElementById('sNote').value,
     roll: Number(roll),
-    photo: document.getElementById('sPhotoData').value||''
+    photo: document.getElementById('sPhotoData').value||'',
+    birthReg: document.getElementById('sBirthReg')?.value||''
   };
   data.students.push(student); save('students');
   closeModal('addStudentModal');
-  ['sName','sNameEn','sFather','sFatherEn','sFatherNID','sMother','sMotherEn','sMotherNID','sDOB','sMobile','sAddress','sFee','sNote','sRoll'].forEach(id=>document.getElementById(id).value='');
+  ['sName','sNameEn','sFather','sFatherEn','sFatherNID','sMother','sMotherEn','sMotherNID','sDOB','sMobile','sAddress','sFee','sNote','sRoll','sBirthReg'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('sBlood').value='';
   document.getElementById('sCodePreview').value='';
   document.getElementById('sPhotoData').value='';
@@ -2368,6 +2503,10 @@ function loadAttendance() {
   if(students.length===0) { document.getElementById('attendanceGrid').innerHTML='<p class="text-muted">এই শ্রেণিতে কোনো শিক্ষার্থী নেই।</p>'; return; }
   const key = `${cls}_${dt}`;
   const saved = data.attendance[key]||{};
+  // "কে নিচ্ছেন" আগের record থাকলে show করো
+  const takenByEl = document.getElementById('attTakenBy');
+  if(saved._takenBy && takenByEl) takenByEl.value = saved._takenBy;
+
   document.getElementById('attendanceGrid').innerHTML = `
     <div style="margin-bottom:10px;display:flex;gap:8px;">
       <button class="btn btn-primary btn-sm" onclick="markAll('${key}','উপস্থিত')">সবাই উপস্থিত</button>
@@ -2376,7 +2515,18 @@ function loadAttendance() {
     <div class="attendance-grid">
     ${students.map(s=>{
       const status = saved[s.id]||'';
+      const leaveReason = saved[s.id+'_leaveReason']||'';
+      const isLeave = status==='ছুটি';
       const callBtn = s.mobile ? `<a href="tel:${s.mobile}" class="att-call-btn" title="কল করুন">📞 কল</a>` : '';
+      if(isLeave) {
+        return `<div class="att-card" style="background:#fff8e1;border:1.5px solid #c9a227;">
+          <div style="font-size:20px;">🏖️</div>
+          <div style="flex:1"><div class="att-name">${s.name}</div><div class="text-muted">রোল: ${s.roll}</div></div>
+          <div style="font-size:11px;background:#fff3cd;border-radius:6px;padding:4px 8px;color:#856404;font-weight:600;">
+            ছুটি অনুমোদিত${leaveReason?'<br><span style="font-weight:400;">'+leaveReason+'</span>':''}
+          </div>
+        </div>`;
+      }
       return `<div class="att-card">
         <div style="font-size:20px;">${s.gender==='মহিলা'?'👩':'👦'}</div>
         <div style="flex:1"><div class="att-name">${s.name}</div><div class="text-muted">রোল: ${s.roll}</div></div>
@@ -2405,7 +2555,20 @@ function markAll(key, status) {
   data.students.filter(s=>s.cls===cls).forEach(s=>data.attendance[key][s.id]=status);
   loadAttendance();
 }
-function saveAttendance() { save('attendance'); toast('উপস্থিতি সংরক্ষিত হয়েছে।'); }
+function saveAttendance() {
+  const cls = document.getElementById('attClass').value;
+  const dt = document.getElementById('attDate').value;
+  const takenById = document.getElementById('attTakenBy').value;
+  if(cls && dt && takenById) {
+    const key = `${cls}_${dt}`;
+    if(!data.attendance[key]) data.attendance[key] = {};
+    const teacher = data.teachers.find(t=>t.id===takenById);
+    data.attendance[key]._takenBy = takenById;
+    data.attendance[key]._takenByName = teacher ? teacher.name : '';
+  }
+  save('attendance');
+  toast('উপস্থিতি সংরক্ষিত হয়েছে। ✅');
+}
 function renderAttReport() {
   const cls = document.getElementById('attReportClass').value;
   const month = document.getElementById('attReportMonth').value;
@@ -2585,33 +2748,200 @@ function deleteNotice(id) {
 }
 
 // ===================== LEAVES =====================
+// ===================== LEAVES (নতুন approval workflow) =====================
+var leaveStatusFilter = 'all';
+
+function filterLeaveStatus(status, el) {
+  leaveStatusFilter = status;
+  document.querySelectorAll('#page-leave .tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderLeaves();
+}
+
+function updateLeaveApplicantList() {
+  var type = document.getElementById('leaveApplicantType').value;
+  var sel = document.getElementById('leaveApplicantId');
+  if(type==='student') {
+    sel.innerHTML = '<option value="">নির্বাচন করুন</option>' + data.students.map(s=>`<option value="${s.id}">${s.name} (${s.cls})</option>`).join('');
+  } else {
+    sel.innerHTML = '<option value="">নির্বাচন করুন</option>' + data.teachers.map(t=>`<option value="${t.id}">${t.name} (${t.type})</option>`).join('');
+  }
+  document.getElementById('leaveName').value='';
+  document.getElementById('leaveDesig').value='';
+}
+
+function fillLeaveApplicant() {
+  var type = document.getElementById('leaveApplicantType').value;
+  var id = document.getElementById('leaveApplicantId').value;
+  if(!id) return;
+  if(type==='student') {
+    var s = data.students.find(x=>x.id===id);
+    if(s) { document.getElementById('leaveName').value=s.name; document.getElementById('leaveDesig').value=s.cls; }
+  } else {
+    var t = data.teachers.find(x=>x.id===id);
+    if(t) { document.getElementById('leaveName').value=t.name; document.getElementById('leaveDesig').value=t.desig||t.type; }
+  }
+  // শিক্ষক হলে ১ কর্মদিবস আগে check করো
+  checkLeaveAdvanceNotice();
+}
+
+function checkLeaveAdvanceNotice() {
+  var type = document.getElementById('leaveApplicantType').value;
+  var from = document.getElementById('leaveFrom').value;
+  var warn = document.getElementById('leaveWarning');
+  if(type==='teacher' && from) {
+    var leaveDate = new Date(from);
+    var today = new Date(); today.setHours(0,0,0,0);
+    var diff = Math.ceil((leaveDate - today)/(1000*60*60*24));
+    if(diff < 1) {
+      warn.style.display='flex';
+      warn.textContent='⚠️ শিক্ষক/স্টাফের ছুটি কমপক্ষে ১ কর্মদিবস আগে আবেদন করতে হবে। জরুরি প্রয়োজনে "জরুরি ছুটি" নির্বাচন করুন — Management সরাসরি অনুমোদন করবেন।';
+    } else {
+      warn.style.display='none';
+    }
+  } else {
+    warn.style.display='none';
+  }
+}
+
 function saveLeave() {
   const name=document.getElementById('leaveName').value.trim();
-  if(!name) { toast('নাম আবশ্যক!','error'); return; }
   const from=document.getElementById('leaveFrom').value, to=document.getElementById('leaveTo').value;
-  const days = (from&&to)?Math.ceil((new Date(to)-new Date(from))/(1000*60*60*24))+1:1;
-  const lv = { id:genId(), name, desig:document.getElementById('leaveDesig').value,
-    reason:document.getElementById('leaveReason').value, ltype:document.getElementById('leaveType').value,
+  if(!name) { toast('আবেদনকারী নির্বাচন করুন!','error'); return; }
+  if(!from||!to) { toast('ছুটির তারিখ দিন!','error'); return; }
+
+  var applicantType = document.getElementById('leaveApplicantType').value;
+  var applicantId = document.getElementById('leaveApplicantId').value;
+  var ltype = document.getElementById('leaveType').value;
+  var days = Math.ceil((new Date(to)-new Date(from))/(1000*60*60*24))+1;
+
+  // শিক্ষক জরুরি ছুটি হলে management সরাসরি
+  var isEmergency = ltype==='জরুরি ছুটি';
+  var initialStatus = (applicantType==='teacher' && isEmergency) ? 'pending_management' : 'pending_teacher';
+  // শিক্ষার্থীর আবেদন → class teacher approve করতে হবে
+  // শিক্ষক সাধারণ ছুটি → প্রিন্সিপাল/management approve
+
+  // ছুটি কি ইতিমধ্যে কেটে গেছে?
+  var today = new Date().toISOString().split('T')[0];
+  var isRetroactive = to < today;
+
+  const lv = {
+    id:genId(), name, desig:document.getElementById('leaveDesig').value,
+    reason:document.getElementById('leaveReason').value, ltype,
     from, to, days, details:document.getElementById('leaveDetails').value,
-    date:new Date().toISOString().split('T')[0] };
-  data.leaves.push(lv); save('leaves'); renderLeaves(); toast('আবেদন সংরক্ষিত।');
+    date:today, applicantType, applicantId,
+    status: initialStatus,
+    isRetroactive, isEmergency,
+    teacherApproved:false, teacherApprovedBy:'', teacherApprovedDate:'',
+    managementApproved:false, managementApprovedBy:'', managementApprovedDate:'',
+    rejectedReason:''
+  };
+  if(!data.leaves) data.leaves=[];
+  data.leaves.push(lv);
+  save('leaves');
+  closeModal('addLeaveModal');
+  renderLeaves();
+  // যদি retroactive এবং approved হলে attendance convert করবে
+  toast(`আবেদন জমা হয়েছে। ${initialStatus==='pending_teacher'?'ক্লাস শিক্ষক অনুমোদন করবেন।':'Management অনুমোদন করবেন।'} ✅`);
 }
+
 function renderLeaves() {
-  document.getElementById('leaveBody').innerHTML = data.leaves.slice().reverse().map(l=>`
+  var list = leaveStatusFilter==='all' ? (data.leaves||[]) : (data.leaves||[]).filter(l=>l.status===leaveStatusFilter);
+  list = list.slice().reverse();
+  const statusLabel = {
+    'pending_teacher':'⏳ শিক্ষক অনুমোদন',
+    'pending_management':'⏳ Management অনুমোদন',
+    'approved':'✅ অনুমোদিত',
+    'rejected':'❌ বাতিল'
+  };
+  const statusColor = {
+    'pending_teacher':'#fff3cd','pending_management':'#e3f2fd',
+    'approved':'#d4edda','rejected':'#fde8e8'
+  };
+  document.getElementById('leaveBody').innerHTML = list.map(l=>`
     <tr>
-      <td><b>${l.name}</b></td><td>${l.desig||'-'}</td><td>${l.reason||'-'}</td>
-      <td><span class="badge badge-blue">${l.ltype}</span></td>
+      <td><b>${l.name}</b><br><span style="font-size:11px;color:var(--text-muted);">${l.desig||''} ${l.isRetroactive?'<span style="color:#c0392b;font-size:10px;">📋 পরে আবেদন</span>':''}</span></td>
+      <td>${l.ltype}</td>
+      <td>${l.reason||'-'}</td>
       <td>${l.from||'-'}</td><td>${l.to||'-'}</td>
-      <td><span class="badge badge-gold">${l.days} দিন</span></td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick='printLeaveApp(${JSON.stringify(l)})'>🖨️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">✕</button>
+      <td>${l.days} দিন</td>
+      <td><span style="background:${statusColor[l.status]||'#eee'};padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;">${statusLabel[l.status]||l.status}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${l.status==='pending_teacher'?`
+          <button class="btn btn-primary btn-sm" onclick="approveLeaveTeacher('${l.id}')">✅ টিচার অনুমোদন</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectLeave('${l.id}')">❌</button>
+        `:''}
+        ${l.status==='pending_management'?`
+          <button class="btn btn-primary btn-sm" onclick="approveLeaveManagement('${l.id}')">✅ Management অনুমোদন</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectLeave('${l.id}')">❌</button>
+        `:''}
+        ${l.status==='approved'?`<button class="btn btn-outline btn-sm" onclick='printLeaveApp(${JSON.stringify(l)})'>🖨️</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">🗑️</button>
       </td>
     </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো আবেদন নেই।</td></tr>';
 }
+
+function approveLeaveTeacher(id) {
+  var lv = (data.leaves||[]).find(l=>l.id===id);
+  if(!lv) return;
+  lv.status = 'pending_management';
+  lv.teacherApproved = true;
+  lv.teacherApprovedDate = new Date().toISOString().split('T')[0];
+  save('leaves'); renderLeaves();
+  toast('ক্লাস শিক্ষক অনুমোদন হয়েছে। এখন Management অনুমোদন করুন। ✅');
+}
+
+function approveLeaveManagement(id) {
+  var lv = (data.leaves||[]).find(l=>l.id===id);
+  if(!lv) return;
+  lv.status = 'approved';
+  lv.managementApproved = true;
+  lv.managementApprovedDate = new Date().toISOString().split('T')[0];
+  // Attendance এ ছুটি convert করো
+  convertLeaveToAttendance(lv);
+  save('leaves'); save('attendance');
+  renderLeaves();
+  toast('ছুটি চূড়ান্তভাবে অনুমোদিত! হাজিরায় ছুটি হিসেবে চিহ্নিত হয়েছে। ✅');
+}
+
+function convertLeaveToAttendance(lv) {
+  if(!lv.applicantId || lv.applicantType!=='student') return;
+  var sid = lv.applicantId;
+  var s = (data.students||[]).find(x=>x.id===sid);
+  if(!s) return;
+  // ছুটির প্রতিটা দিনে attendance mark করো
+  var cur = new Date(lv.from);
+  var end = new Date(lv.to);
+  while(cur<=end) {
+    var dateStr = cur.toISOString().split('T')[0];
+    var key = s.cls+'_'+dateStr;
+    if(!data.attendance[key]) data.attendance[key]={};
+    // ছুটি হিসেবে mark — override করো
+    data.attendance[key][sid] = 'ছুটি';
+    data.attendance[key][sid+'_leaveId'] = lv.id;
+    data.attendance[key][sid+'_leaveReason'] = lv.reason||lv.ltype;
+    cur.setDate(cur.getDate()+1);
+  }
+}
+
+function rejectLeave(id) {
+  var reason = prompt('বাতিলের কারণ লিখুন (ঐচ্ছিক):');
+  var lv = (data.leaves||[]).find(l=>l.id===id);
+  if(!lv) return;
+  lv.status='rejected'; lv.rejectedReason=reason||'';
+  save('leaves'); renderLeaves(); toast('আবেদন বাতিল করা হয়েছে।','error');
+}
+
 function deleteLeave(id) {
+  if(!confirm('এই আবেদনটি মুছবেন?')) return;
   data.leaves=data.leaves.filter(l=>l.id!==id); save('leaves'); renderLeaves(); toast('মুছে ফেলা হয়েছে।','error');
 }
+
+function printLeave() {
+  // legacy support
+  printLeaveApp({name:'', desig:'', ltype:'ছুটির আবেদন', reason:'', from:'', to:'', details:''});
+}
+
 
 // ===================== ROUTINE =====================
 function addRoutine() {
@@ -2784,6 +3114,8 @@ function loadSettings() {
   document.getElementById('setInstSub').value=s.sub||'';
   document.getElementById('setAddress').value=s.address||'';
   document.getElementById('setPhone').value=s.phone||'';
+  document.getElementById('setEmail').value=s.email||'';
+  document.getElementById('setWebsite').value=s.website||'';
   document.getElementById('setEIIN').value=s.eiin||'';
   document.getElementById('setPrincipal').value=s.principal||'';
   document.getElementById('setAdminPin').value=s.adminPin||'';
@@ -2804,6 +3136,8 @@ function saveSettings() {
   data.settings.sub=document.getElementById('setInstSub').value;
   data.settings.address=document.getElementById('setAddress').value;
   data.settings.phone=document.getElementById('setPhone').value;
+  data.settings.email=document.getElementById('setEmail').value;
+  data.settings.website=document.getElementById('setWebsite').value;
   data.settings.eiin=document.getElementById('setEIIN').value;
   data.settings.principal=document.getElementById('setPrincipal').value;
   const newPin = document.getElementById('setAdminPin').value.trim();
@@ -2966,24 +3300,45 @@ function printFinanceReport() {
 
 function printNotice(n) {
   const w=window.open('','_blank');
+  const instName = data.settings.name||'মাদ্রাসা';
+  const instAddr = data.settings.address||'';
+  const instPhone = data.settings.phone||'';
+  const instEmail = data.settings.email||'';
+  const instWeb = data.settings.website||'';
+  const principal = n.issuer||data.settings.principal||'প্রধান শিক্ষক';
+  const refNum = 'স্বারক-'+new Date().getFullYear()+'-'+String(Math.floor(Math.random()*9000)+1000);
   w.document.write(`<html><head><meta charset="UTF-8"><style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@700&family=Noto+Sans+Bengali&display=swap');
-    body{font-family:'Noto Sans Bengali',sans-serif;padding:40px;max-width:700px;margin:0 auto;}
-    .top{text-align:center;border-bottom:3px double #1a4a2e;padding-bottom:14px;margin-bottom:18px;}
-    .inst{font-family:'Noto Serif Bengali',serif;font-size:22px;font-weight:700;color:#1a4a2e;}
-    .title-bar{background:#1a4a2e;color:#fff;padding:10px;text-align:center;font-size:16px;font-weight:700;border-radius:6px;margin-bottom:16px;}
-    .body{white-space:pre-wrap;line-height:2;font-size:14px;}
-    .footer{display:flex;justify-content:space-between;margin-top:40px;border-top:1px solid #ccc;padding-top:12px;font-size:12px;}
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Noto Sans Bengali',sans-serif;padding:40px 50px;max-width:720px;margin:0 auto;color:#1a2e22;}
+    .inst-name{font-family:'Noto Serif Bengali',serif;font-size:26px;font-weight:700;color:#1a4a2e;text-align:center;line-height:1.4;margin-bottom:4px;}
+    .inst-sub{font-size:13px;color:#555;text-align:center;margin-bottom:12px;}
+    .divider{border:none;border-top:2.5px solid #1a4a2e;margin:10px 0;}
+    .meta-row{display:flex;justify-content:space-between;font-size:12px;color:#555;margin:10px 0 24px;}
+    .notice-title{font-size:18px;font-weight:700;text-align:center;margin:0 0 20px;font-family:'Noto Serif Bengali',serif;}
+    .body{line-height:2.2;font-size:14px;text-align:justify;white-space:pre-wrap;}
+    .sig-area{text-align:right;margin-top:50px;}
+    .sig-line{border-top:1px solid #333;display:inline-block;width:180px;margin-bottom:4px;}
+    .footer-bar{background:#1a4a2e;color:#fff;text-align:center;padding:10px 20px;margin-top:40px;border-radius:6px;font-size:12px;line-height:1.8;}
+    @media print{body{padding:20px 30px;}}
   </style></head><body>
-    <div class="top"><div class="inst">🕌 ${data.settings.name||'মাদ্রাসা'}</div>
-    <p style="color:#666;font-size:13px;">${data.settings.address||''} | ${data.settings.phone||''}</p></div>
-    <div class="title-bar">📢 বিজ্ঞপ্তি</div>
-    <div style="margin-bottom:10px;"><b>বিষয়:</b> ${n.title}</div>
-    <div style="margin-bottom:16px;"><b>তারিখ:</b> ${n.date||''} | <b>ধরন:</b> ${n.ntype}</div>
+    <div class="inst-name">${instName}</div>
+    <hr class="divider">
+    <div class="meta-row">
+      <span><b>স্বারক নং:</b> ${refNum}</span>
+      <span><b>তারিখ:</b> ${n.date||new Date().toLocaleDateString('bn-BD')}</span>
+    </div>
+    <div class="notice-title">📢 ${n.ntype==='জরুরি'?'জরুরি ' : ''}বিজ্ঞপ্তি</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:18px;"><b>বিষয়:</b> ${n.title}</div>
     <div class="body">${n.body}</div>
-    <div class="footer">
-      <span>তারিখ: ${n.date||''}</span>
-      <span>${n.issuer||data.settings.principal||'প্রধান শিক্ষক'}<br>(স্বাক্ষর ও সিল)</span>
+    <div class="sig-area" style="margin-top:50px;">
+      <div class="sig-line"></div><br>
+      <div style="font-size:13px;font-weight:700;">${principal}</div>
+      <div style="font-size:12px;color:#555;">প্রধান শিক্ষক</div>
+      <div style="font-size:12px;color:#555;">${instName}</div>
+    </div>
+    <div class="footer-bar">
+      ${instName}${instAddr?' • '+instAddr:''}${instPhone?' • '+instPhone:''}${instEmail?' • '+instEmail:''}${instWeb?' • '+instWeb:''}
     </div>
   </body></html>`);
   w.document.close(); w.print();
@@ -3000,26 +3355,54 @@ function printLeave() {
 }
 function printLeaveApp(lv) {
   const w=window.open('','_blank');
+  const instName = data.settings.name||'মাদ্রাসা';
+  const instAddr = data.settings.address||'';
+  const instPhone = data.settings.phone||'';
+  const principal = data.settings.principal||'প্রধান শিক্ষক';
+  const refNum = 'ছুটি-'+new Date().getFullYear()+'-'+String(Math.floor(Math.random()*9000)+1000);
+  const today = new Date().toLocaleDateString('bn-BD',{year:'numeric',month:'long',day:'numeric'});
   w.document.write(`<html><head><meta charset="UTF-8"><style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@700&family=Noto+Sans+Bengali&display=swap');
-    body{font-family:'Noto Sans Bengali',sans-serif;padding:50px;max-width:680px;margin:0 auto;}
-    .top{text-align:center;margin-bottom:20px;} .inst{font-family:'Noto Serif Bengali',serif;font-size:20px;font-weight:700;color:#1a4a2e;}
-    .title{font-size:18px;font-weight:700;text-align:center;margin:20px 0;text-decoration:underline;}
-    p{line-height:2.2;font-size:14px;text-align:justify;}
-    .sig{display:flex;justify-content:space-between;margin-top:50px;font-size:13px;}
-    .line{border-bottom:1px solid #333;margin-top:30px;width:180px;}
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Noto Sans Bengali',sans-serif;padding:40px 50px;max-width:720px;margin:0 auto;color:#1a2e22;}
+    .inst-name{font-family:'Noto Serif Bengali',serif;font-size:26px;font-weight:700;color:#1a4a2e;text-align:center;line-height:1.4;margin-bottom:4px;}
+    .divider{border:none;border-top:2.5px solid #1a4a2e;margin:10px 0;}
+    .meta-row{display:flex;justify-content:space-between;font-size:12px;color:#555;margin:10px 0 24px;}
+    .notice-title{font-size:18px;font-weight:700;text-align:center;margin:0 0 24px;font-family:'Noto Serif Bengali',serif;}
+    p{line-height:2.4;font-size:14px;text-align:justify;margin-bottom:10px;}
+    .sig-row{display:flex;justify-content:space-between;margin-top:50px;}
+    .sig-box{text-align:center;}
+    .sig-line{border-top:1px solid #333;display:block;width:180px;margin-bottom:4px;}
+    .footer-bar{background:#1a4a2e;color:#fff;text-align:center;padding:10px 20px;margin-top:40px;border-radius:6px;font-size:12px;line-height:1.8;}
+    @media print{body{padding:20px 30px;}}
   </style></head><body>
-    <div class="top"><div class="inst">🕌 ${data.settings.name||'মাদ্রাসা'}</div>
-    <p style="color:#666;font-size:12px;">${data.settings.address||''}</p></div>
-    <div class="title">${lv.ltype||'ছুটির আবেদন'}</div>
-    <p>বরাবর,<br>প্রধান শিক্ষক,<br>${data.settings.name||'মাদ্রাসা'}।</p>
+    <div class="inst-name">${instName}</div>
+    <hr class="divider">
+    <div class="meta-row">
+      <span><b>স্বারক নং:</b> ${refNum}</span>
+      <span><b>তারিখ:</b> ${today}</span>
+    </div>
+    <div class="notice-title">${lv.ltype||'ছুটির আবেদন'}</div>
+    <p>বরাবর,<br>প্রধান শিক্ষক,<br>${instName}।</p>
     <p>বিষয়: <b>${lv.reason||lv.ltype||'ছুটির আবেদন'}</b> মর্মে আবেদন।</p>
     <p>জনাব,<br>
-    আমি ${lv.name||'_______'}, ${lv.desig||'_______'} সবিনয় নিবেদন করছি যে, ${lv.details||'ব্যক্তিগত কারণে আমার ছুটির প্রয়োজন'} । এই পরিপ্রেক্ষিতে ${lv.from||'_______'} তারিখ হতে ${lv.to||'_______'} তারিখ পর্যন্ত আমাকে ছুটি মঞ্জুর করার জন্য সবিনয় আবেদন জানাচ্ছি।</p>
+    আমি ${lv.name||'_______'}, ${lv.desig||'_______'} সবিনয় নিবেদন করছি যে, ${lv.details||'ব্যক্তিগত কারণে আমার ছুটির প্রয়োজন'} ।
+    এই পরিপ্রেক্ষিতে <b>${lv.from||'_______'}</b> তারিখ হতে <b>${lv.to||'_______'}</b> তারিখ পর্যন্ত মোট <b>${lv.days||'__'} দিন</b> ছুটি মঞ্জুর করার জন্য সবিনয় আবেদন জানাচ্ছি।</p>
     <p>অতএব, আপনার সদয় বিবেচনার জন্য আবেদন করছি।</p>
-    <div class="sig">
-      <div><div class="line"></div><p>প্রধান শিক্ষকের স্বাক্ষর ও সিল</p></div>
-      <div><div class="line"></div><p>আবেদনকারীর স্বাক্ষর<br>${lv.name||''}<br>${lv.desig||''}</p></div>
+    <div class="sig-row">
+      <div class="sig-box">
+        <span class="sig-line"></span>
+        <div style="font-size:12px;">${principal}</div>
+        <div style="font-size:11px;color:#555;">প্রধান শিক্ষক (সিল ও স্বাক্ষর)</div>
+      </div>
+      <div class="sig-box">
+        <span class="sig-line"></span>
+        <div style="font-size:12px;font-weight:700;">${lv.name||'আবেদনকারী'}</div>
+        <div style="font-size:11px;color:#555;">${lv.desig||''}</div>
+      </div>
+    </div>
+    <div class="footer-bar">
+      ${instName}${instAddr?' • '+instAddr:''}${instPhone?' • '+instPhone:''}
     </div>
   </body></html>`);
   w.document.close(); w.print();
@@ -4326,13 +4709,51 @@ function showLetterPreview(l, autoPrint=false) {
 }
 
 function printLetter() {
-  const content = document.getElementById('letterPrintArea')?.innerHTML;
-  if(!content) return;
+  const contentEl = document.getElementById('letterPrintArea');
+  if(!contentEl) return;
+  const instName = data.settings.name||'মাদ্রাসা';
+  const instAddr = data.settings.address||'';
+  const instPhone = data.settings.phone||'';
+  const instEmail = data.settings.email||'';
+  const instWeb = data.settings.website||'';
+  const principal = data.settings.principal||'প্রধান শিক্ষক';
+  const today = new Date().toLocaleDateString('bn-BD',{year:'numeric',month:'long',day:'numeric'});
+  const refNum = 'পত্র-'+new Date().getFullYear()+'-'+String(Math.floor(Math.random()*9000)+1000);
+
   const w = window.open('','_blank','width=800,height=900');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>*{margin:0;padding:0;box-sizing:border-box;} body{font-family:'Noto Sans Bengali',sans-serif;padding:20px;} @media print{@page{margin:15mm;}}</style>
-    </head><body>${content}<script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:'Noto Sans Bengali',sans-serif;padding:40px 50px;max-width:720px;margin:0 auto;color:#1a2e22;}
+      .inst-name{font-family:'Noto Serif Bengali',serif;font-size:26px;font-weight:700;color:#1a4a2e;text-align:center;line-height:1.4;margin-bottom:4px;}
+      .inst-sub{font-size:13px;color:#555;text-align:center;margin-bottom:12px;}
+      .divider{border:none;border-top:2.5px solid #1a4a2e;margin:10px 0;}
+      .meta-row{display:flex;justify-content:space-between;font-size:12px;color:#555;margin:10px 0 24px;}
+      .letter-content{line-height:2.2;font-size:14px;}
+      .sig-area{text-align:right;margin-top:50px;}
+      .sig-line{border-top:1px solid #333;display:inline-block;width:180px;margin-bottom:4px;}
+      .footer-bar{background:#1a4a2e;color:#fff;text-align:center;padding:10px 20px;margin-top:40px;border-radius:6px;font-size:12px;line-height:1.8;}
+      @media print{@page{margin:15mm;} body{padding:20px 30px;}}
+    </style>
+    </head><body>
+      <div class="inst-name">${instName}</div>
+      <hr class="divider">
+      <div class="meta-row">
+        <span><b>স্বারক নং:</b> ${refNum}</span>
+        <span><b>তারিখ:</b> ${today}</span>
+      </div>
+      <div class="letter-content">${contentEl.innerHTML}</div>
+      <div class="sig-area">
+        <div class="sig-line"></div><br>
+        <div style="font-size:13px;font-weight:700;">${principal}</div>
+        <div style="font-size:12px;color:#555;">প্রধান শিক্ষক</div>
+        <div style="font-size:12px;color:#555;">${instName}</div>
+      </div>
+      <div class="footer-bar">
+        ${instName}${instAddr?' • '+instAddr:''}${instPhone?' • '+instPhone:''}${instEmail?' • '+instEmail:''}${instWeb?' • '+instWeb:''}
+      </div>
+    <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
   w.document.close();
 }
 
@@ -4562,6 +4983,10 @@ function showTeacherProgressPage() {
         '</table>'+
       '</div>'+
     '</div>'+
+    // আমার ক্লাস section
+    (t.assignedClass ? renderTeacherMyClassHTML(t) : '') +
+    // আমার ক্লাসের ছুটির আবেদন
+    renderTeacherLeaveApproval(t) +
     '</div>';
 
   // checkinTime/checkoutTime header reference
@@ -4569,6 +4994,258 @@ function showTeacherProgressPage() {
   var checkoutTime = t.checkoutTime||data.settings.checkoutTime||'14:00';
 }
 
+
+function renderTeacherLeaveApproval(t) {
+  var cls = t.assignedClass;
+  if(!cls) return '';
+  // এই ক্লাসের শিক্ষার্থীদের pending leave applications
+  var clsStudentIds = (data.students||[]).filter(function(s){ return s.cls===cls; }).map(function(s){ return s.id; });
+  var pendingLeaves = (data.leaves||[]).filter(function(lv){
+    return lv.applicantType==='student' && clsStudentIds.indexOf(lv.applicantId)>=0 && lv.status==='pending_teacher';
+  });
+  if(pendingLeaves.length===0) return '<div class="card" style="grid-column:1/-1;margin-top:14px;"><div class="card-header"><span class="card-title">📝 ছুটির আবেদন (আমার ক্লাস)</span></div><div class="card-body"><p class="text-muted" style="text-align:center;padding:16px;">কোনো ছুটির আবেদন অনুমোদনের অপেক্ষায় নেই।</p></div></div>';
+
+  return '<div class="card" style="grid-column:1/-1;margin-top:14px;">'+
+    '<div class="card-header"><span class="card-title">📝 ছুটির আবেদন — আমার ক্লাস</span>'+
+      '<span style="background:var(--danger);color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;">'+pendingLeaves.length+'টি অপেক্ষায়</span>'+
+    '</div>'+
+    '<div class="card-body">'+
+      pendingLeaves.map(function(lv){
+        return '<div style="background:var(--primary-ultra-light);border:1.5px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
+            '<div style="flex:1;">'+
+              '<div style="font-weight:700;">'+lv.name+'</div>'+
+              '<div style="font-size:12px;color:var(--text-muted);">'+lv.ltype+' | '+lv.from+' থেকে '+lv.to+' ('+lv.days+' দিন)</div>'+
+              '<div style="font-size:12px;margin-top:4px;color:#555;">কারণ: '+( lv.reason||lv.details||'-')+'</div>'+
+              (lv.isRetroactive?'<div style="font-size:11px;color:#c0392b;margin-top:2px;">📋 ছুটি কাটানোর পরে আবেদন</div>':'')+
+            '</div>'+
+            '<div style="display:flex;gap:6px;">'+
+              '<button class="btn btn-primary btn-sm" onclick="teacherApproveLeave(\''+lv.id+'\')">✅ অনুমোদন</button>'+
+              '<button class="btn btn-danger btn-sm" onclick="teacherRejectLeave(\''+lv.id+'\')">❌ বাতিল</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+  '</div>';
+}
+
+function teacherApproveLeave(id) {
+  approveLeaveTeacher(id);
+  showTeacherProgressPage(); // refresh
+  toast('আবেদন অনুমোদন হয়েছে। Management এ পাঠানো হয়েছে। ✅');
+}
+function teacherRejectLeave(id) {
+  rejectLeave(id);
+  showTeacherProgressPage();
+}
+
+
+function verifyBirthReg() {
+  var num = document.getElementById('sBirthReg')?.value?.trim();
+  // bdris.gov.bd - বাংলাদেশ জন্ম ও মৃত্যু নিবন্ধন সিস্টেম
+  var url = 'https://bdris.gov.bd/br/application/onlineCheck';
+  if(num) {
+    // নম্বর সহ পেজ open করো
+    url = 'https://bdris.gov.bd/br/application/onlineCheck';
+    toast('bdris.gov.bd সাইট খুলছে — সেখানে নম্বরটি দিয়ে যাচাই করুন। 🔍');
+  } else {
+    toast('আগে জন্ম নিবন্ধন নম্বর দিন!','error'); return;
+  }
+  window.open(url, '_blank');
+}
+
+
+function renderTeacherMyClassHTML(t) {
+  var cls = t.assignedClass;
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; });
+  var remarks = (data.studentRemarks||[]).filter(function(r){ return r.teacherId===t.id; });
+
+  var studentRows = students.map(function(s) {
+    var sRemarks = remarks.filter(function(r){ return r.studentId===s.id; });
+    var lastRemark = sRemarks.length ? sRemarks[sRemarks.length-1] : null;
+    var statusBadge = lastRemark
+      ? (lastRemark.status==='approved'
+          ? '<span style="background:#d4edda;color:#155724;font-size:10px;border-radius:4px;padding:1px 6px;">✅ অনুমোদিত</span>'
+          : '<span style="background:#fff3cd;color:#856404;font-size:10px;border-radius:4px;padding:1px 6px;">⏳ অপেক্ষায়</span>')
+      : '';
+    return '<tr>'+
+      '<td style="padding:8px;">'+s.roll+'</td>'+
+      '<td style="padding:8px;">'+s.name+'</td>'+
+      '<td style="padding:8px;font-size:11px;color:var(--text-muted);">'+(lastRemark?lastRemark.text.substring(0,40)+'...':'—')+'</td>'+
+      '<td style="padding:8px;">'+statusBadge+'</td>'+
+      '<td style="padding:8px;">'+
+        '<button class="btn btn-sm btn-primary" style="font-size:11px;padding:3px 8px;" onclick="openRemarkModal(\''+s.id+'\',\''+s.name+'\')">✏️ মন্তব্য</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('') || '<tr><td colspan="5" style="padding:12px;text-align:center;color:var(--text-muted);">কোনো শিক্ষার্থী নেই।</td></tr>';
+
+  return '<div class="card" style="grid-column:1/-1;margin-top:14px;">'+
+    '<div class="card-header">'+
+      '<span class="card-title">👨‍🎓 আমার ক্লাস — '+cls+'</span>'+
+      '<span style="font-size:12px;color:var(--text-muted);">মোট: '+students.length+' জন</span>'+
+    '</div>'+
+    '<div class="card-body" style="overflow-x:auto;">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+        '<thead><tr>'+
+          '<th style="background:var(--primary);color:#fff;padding:7px;text-align:left;">রোল</th>'+
+          '<th style="background:var(--primary);color:#fff;padding:7px;">নাম</th>'+
+          '<th style="background:var(--primary);color:#fff;padding:7px;">সর্বশেষ মন্তব্য</th>'+
+          '<th style="background:var(--primary);color:#fff;padding:7px;">স্ট্যাটাস</th>'+
+          '<th style="background:var(--primary);color:#fff;padding:7px;">কাজ</th>'+
+        '</tr></thead>'+
+        '<tbody>'+studentRows+'</tbody>'+
+      '</table>'+
+    '</div>'+
+  '</div>';
+}
+
+function openRemarkModal(studentId, studentName) {
+  var existing = (data.studentRemarks||[]).filter(function(r){ return r.studentId===studentId && r.teacherId===currentUser.id; });
+  var last = existing.length ? existing[existing.length-1] : null;
+  var modalHtml = '<div id="remarkModal" class="modal-overlay open" style="z-index:9999;">'+
+    '<div class="modal" style="max-width:500px;">'+
+      '<div class="modal-header"><span class="modal-title">✏️ মন্তব্য — '+studentName+'</span>'+
+        '<button class="modal-close" onclick="document.getElementById(\'remarkModal\').remove()">✕</button></div>'+
+      '<div class="modal-body">'+
+        (existing.length ? '<div style="margin-bottom:12px;"><div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-muted);">আগের মন্তব্যসমূহ:</div>'+
+          existing.slice().reverse().slice(0,3).map(function(r){
+            return '<div style="background:var(--primary-ultra-light);border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px;">'+
+              '<div style="display:flex;justify-content:space-between;">'+
+                '<span style="font-weight:600;">'+r.date+' — '+r.category+'</span>'+
+                '<span style="background:'+(r.status==='approved'?'#d4edda':'#fff3cd')+';color:'+(r.status==='approved'?'#155724':'#856404')+';border-radius:4px;padding:1px 6px;font-size:10px;">'+(r.status==='approved'?'✅ অনুমোদিত':'⏳ অপেক্ষায়')+'</span>'+
+              '</div>'+
+              '<div style="margin-top:4px;">'+r.text+'</div>'+
+              (r.parentReply ? '<div style="background:#fff3cd;border-radius:4px;padding:6px;margin-top:6px;font-size:11px;"><b>অভিভাবকের উত্তর:</b> '+r.parentReply+'</div>' : '')+
+            '</div>';
+          }).join('')+
+        '</div>' : '')+
+        '<div class="form-group"><label>নতুন মন্তব্য লিখুন</label>'+
+          '<textarea id="remarkText" rows="4" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;" placeholder="পড়াশোনা, আচরণ, সমস্যা, পরিকল্পনা..."></textarea></div>'+
+        '<div class="form-group"><label>বিভাগ</label>'+
+          '<select id="remarkCategory" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">'+
+            '<option value="পড়াশোনা">📚 পড়াশোনা</option>'+
+            '<option value="আচরণ">😊 আচরণ</option>'+
+            '<option value="সমস্যা">⚠️ সমস্যা</option>'+
+            '<option value="পরিকল্পনা">📋 পরিকল্পনা</option>'+
+            '<option value="সামগ্রিক">🌟 সামগ্রিক মূল্যায়ন</option>'+
+          '</select></div>'+
+      '</div>'+
+      '<div class="modal-footer">'+
+        '<button class="btn btn-outline" onclick="document.getElementById(\'remarkModal\').remove()">বাতিল</button>'+
+        '<button class="btn btn-primary" onclick="saveRemark(\''+studentId+'\',\''+studentName+'\')">✅ জমা দিন (Admin অনুমোদনের জন্য)</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function saveRemark(studentId, studentName) {
+  var text = document.getElementById('remarkText').value.trim();
+  if(!text) { toast('মন্তব্য লিখুন!','error'); return; }
+  var category = document.getElementById('remarkCategory').value;
+  if(!data.studentRemarks) data.studentRemarks = [];
+  var remark = {
+    id: genId(),
+    studentId: studentId,
+    studentName: studentName,
+    teacherId: currentUser.id,
+    teacherName: currentUser.name,
+    cls: currentUser.cls||'',
+    text: text,
+    category: category,
+    date: new Date().toISOString().split('T')[0],
+    status: 'pending',
+    parentRead: false,
+    parentReply: ''
+  };
+  data.studentRemarks.push(remark);
+  save('studentRemarks');
+  document.getElementById('remarkModal').remove();
+  toast('মন্তব্য জমা হয়েছে। Admin অনুমোদনের পর অভিভাবক দেখতে পাবেন। ✅');
+  showTeacherProgressPage();
+}
+
+// Admin: মন্তব্য অনুমোদন
+function renderRemarksApproval() {
+  var pending = (data.studentRemarks||[]).filter(function(r){ return r.status==='pending'; });
+  var approved = (data.studentRemarks||[]).filter(function(r){ return r.status==='approved'; });
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+
+  // Pending section
+  html += '<div class="card" style="grid-column:1/-1;">'+
+    '<div class="card-header">'+
+      '<span class="card-title">⏳ অনুমোদনের অপেক্ষায় ('+pending.length+'টি)</span>'+
+    '</div>'+
+    '<div class="card-body">';
+  if(pending.length===0) {
+    html += '<p class="text-muted" style="text-align:center;padding:20px;">কোনো মন্তব্য অপেক্ষায় নেই।</p>';
+  } else {
+    html += pending.map(function(r){
+      return '<div style="background:var(--primary-ultra-light);border:1.5px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
+          '<div style="flex:1;">'+
+            '<div style="font-weight:700;font-size:13px;">'+r.studentName+' ('+r.cls+')</div>'+
+            '<div style="font-size:11px;color:var(--text-muted);">শিক্ষক: '+r.teacherName+' | '+r.date+' | '+r.category+'</div>'+
+            '<div style="margin-top:6px;font-size:13px;background:#fff;border-radius:6px;padding:8px;">'+r.text+'</div>'+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:6px;">'+
+            '<button class="btn btn-primary btn-sm" onclick="approveRemark(\''+r.id+'\')">✅ অনুমোদন</button>'+
+            '<button class="btn btn-danger btn-sm" onclick="deleteRemark(\''+r.id+'\')">🗑️ মুছুন</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+  html += '</div></div>';
+
+  // Approved section
+  html += '<div class="card" style="grid-column:1/-1;">'+
+    '<div class="card-header">'+
+      '<span class="card-title">✅ অনুমোদিত মন্তব্য ('+approved.length+'টি)</span>'+
+    '</div>'+
+    '<div class="card-body">';
+  if(approved.length===0) {
+    html += '<p class="text-muted" style="text-align:center;padding:20px;">কোনো অনুমোদিত মন্তব্য নেই।</p>';
+  } else {
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">'+
+      '<thead><tr>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">শিক্ষার্থী</th>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">শ্রেণি</th>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">শিক্ষক</th>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">মন্তব্য</th>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">তারিখ</th>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">পড়েছে</th>'+
+        '<th style="background:var(--primary);color:#fff;padding:7px;">কাজ</th>'+
+      '</tr></thead>'+
+      '<tbody>'+approved.map(function(r){
+        return '<tr>'+
+          '<td style="padding:7px;">'+r.studentName+'</td>'+
+          '<td style="padding:7px;">'+r.cls+'</td>'+
+          '<td style="padding:7px;">'+r.teacherName+'</td>'+
+          '<td style="padding:7px;font-size:11px;">'+r.text.substring(0,50)+'...</td>'+
+          '<td style="padding:7px;">'+r.date+'</td>'+
+          '<td style="padding:7px;text-align:center;">'+(r.parentRead?'✅':'—')+'</td>'+
+          '<td style="padding:7px;">'+
+            '<button class="btn btn-danger btn-sm" style="font-size:10px;" onclick="deleteRemark(\''+r.id+'\')">🗑️</button>'+
+          '</td>'+
+        '</tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  html += '</div></div>';
+  html += '</div>';
+  document.getElementById('remarksApprovalBody').innerHTML = html;
+}
+
+function approveRemark(id) {
+  var r = (data.studentRemarks||[]).find(function(x){ return x.id===id; });
+  if(r) { r.status='approved'; save('studentRemarks'); renderRemarksApproval(); toast('মন্তব্য অনুমোদন হয়েছে। অভিভাবক এখন দেখতে পাবেন। ✅'); }
+}
+function deleteRemark(id) {
+  if(!confirm('মন্তব্যটি মুছে ফেলবেন?')) return;
+  data.studentRemarks = (data.studentRemarks||[]).filter(function(r){ return r.id!==id; });
+  save('studentRemarks'); renderRemarksApproval(); toast('মুছে গেছে।','error');
+}
 
 // ===================== PAYROLL =====================
 function renderPayroll() {
@@ -4847,6 +5524,7 @@ function showTeacherAttPage() {
       <button class="header-btn btn-primary" onclick="showTeacherDash('att')" style="font-size:12px;">✅ হাজিরা</button>
       <button class="header-btn btn-primary" onclick="showTeacherDash('checkin')" style="font-size:12px;">🕐 চেক-ইন/আউট</button>
       <button class="header-btn btn-primary" onclick="showTeacherProgressPage()" style="font-size:12px;">📈 প্রগ্রেস</button>
+      <button class="header-btn btn-primary" onclick="showTeacherDash('myclass')" style="font-size:12px;">👨‍🎓 আমার ক্লাস</button>
       <button class="header-btn btn-outline" onclick="doLogout()" style="background:#fff;border:1.5px solid var(--border);color:var(--text);font-size:12px;">🚪 লগআউট</button>
     </div>`;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -4863,6 +5541,10 @@ function showTeacherDash(tab) {
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-staff-checkin').classList.add('active');
     verifyWiFiAndRender();
+  } else if(tab==='myclass') {
+    showTeacherProgressPage();
+    // scroll to myclass section
+    setTimeout(function(){ var el=document.querySelector('[data-section="myclass"]'); if(el) el.scrollIntoView({behavior:'smooth'}); }, 300);
   }
 }
 
@@ -4912,9 +5594,20 @@ function loadTeacherAtt() {
   const grid = students.map(s=>{
     const status = saved[s.id]||'';
     const isAbsentAlert = absentAlert.find(a=>a.id===s.id);
+    const isLeave = status==='ছুটি';
+    const leaveReason = saved[s.id+'_leaveReason']||'';
     const callBtn = s.mobile
       ? `<a href="tel:${s.mobile}" class="att-call-btn" title="অভিভাবকে কল করুন">📞 কল</a>`
       : '';
+    if(isLeave) {
+      return `<div class="att-card" style="background:#fff8e1;border:1.5px solid #c9a227;">
+        <div style="font-size:20px;">🏖️</div>
+        <div style="flex:1"><div class="att-name">${s.name}</div><div class="text-muted">রোল: ${s.roll}</div></div>
+        <div style="font-size:11px;background:#fff3cd;border-radius:6px;padding:4px 8px;color:#856404;font-weight:600;">
+          ছুটি অনুমোদিত${leaveReason?'<br><span style="font-weight:400;">'+leaveReason+'</span>':''}
+        </div>
+      </div>`;
+    }
     return `<div class="att-card" id="attcard-${s.id}" style="${isAbsentAlert?'border-color:var(--danger);background:#fff5f5;':''}">
       <div style="font-size:20px;">${s.gender==='মহিলা'?'👩':'👦'}</div>
       <div style="flex:1">
@@ -4929,6 +5622,13 @@ function loadTeacherAtt() {
       </div>
     </div>`;
   }).join('');
+
+  // "কে নিচ্ছেন" display
+  const takenByWrap = document.getElementById('teacherAttTakenByWrap');
+  if(takenByWrap) {
+    takenByWrap.textContent = currentUser && currentUser.name ? '👤 '+currentUser.name : '';
+  }
+
   document.getElementById('teacherAttGrid').innerHTML = alertHtml + `
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
       <button class="btn btn-primary btn-sm" onclick="markAll('${key}','উপস্থিত')">সবাই উপস্থিত</button>
@@ -4958,6 +5658,14 @@ function getConsecutiveAbsent(cls) {
 }
 
 function saveTeacherAtt() {
+  const cls = currentUser.cls;
+  const dt = document.getElementById('teacherAttDate').value;
+  if(cls && dt) {
+    const key = `${cls}_${dt}`;
+    if(!data.attendance[key]) data.attendance[key] = {};
+    data.attendance[key]._takenBy = currentUser.id;
+    data.attendance[key]._takenByName = currentUser.name;
+  }
   save('attendance');
   toast('উপস্থিতি সংরক্ষিত হয়েছে ✅');
   loadTeacherAtt();
@@ -5279,6 +5987,11 @@ var _fns = {
   openQuickFeeModal, switchQFTab, qfSearchStudent, qfSelectStudent,
   qfSaveOldStudent, qfSaveAndPrint, qfAdmitNewStudent, qfAdmitAndPrint,
   qfSaleForm, qfSaleFormAndPrint, printFormReceipt,
+  openRemarkModal, saveRemark, approveRemark, deleteRemark, renderRemarksApproval,
+  renderTeacherMyClassHTML,
+  filterLeaveStatus, updateLeaveApplicantList, fillLeaveApplicant, checkLeaveAdvanceNotice,
+  approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
+  verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
