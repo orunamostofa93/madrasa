@@ -562,14 +562,14 @@
         </div>
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🏆 সেরা শিক্ষার্থী</span>
+            <span class="card-title">🏆 এই মাসের সেরা শিক্ষার্থী</span>
             <span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + ফলাফল</span>
           </div>
           <div class="card-body" id="topStudents"></div>
         </div>
         <div class="card">
           <div class="card-header">
-            <span class="card-title">⭐ সেরা শিক্ষক</span>
+            <span class="card-title">⭐ এই মাসের সেরা শিক্ষক</span>
             <span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + হাজিরা</span>
           </div>
           <div class="card-body" id="topTeachers"></div>
@@ -2626,13 +2626,7 @@ function renderDashboard() {
     var activeStu = (data.students||[]).filter(function(s){return !s.archived;});
     var feeCount = paidStuIds.size;
     var feeNotCount = activeStu.length - feeCount;
-    return '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'attendance\')">'+'<div class="stat-icon green">📋</div><div>'
-      +'<div class="stat-label">আজকের উপস্থিতি</div>'
-      +'<div class="stat-value">'+attPct+'%</div>'
-      +'<div style="margin-top:5px;background:#ddd;border-radius:4px;height:5px;"><div style="background:var(--primary);width:'+attPct+'%;height:100%;border-radius:4px;"></div></div>'
-      +'<div style="margin-top:4px;display:flex;gap:8px;font-size:11px;">'+'<span style="color:var(--primary-light);">✅ '+presentToday+'</span><span style="color:var(--danger);">❌ '+absentToday+'</span>'+'</div>'
-      +'</div></div>'
-      +'<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'fee\')">'+'<div class="stat-icon gold">💳</div><div>'
+    return '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'fee\')">'+'<div class="stat-icon gold">💳</div><div>'
       +'<div class="stat-label">এ মাসের ফি আদায়</div>'
       +'<div class="stat-value">৳ '+monthlyFeePaid.toLocaleString('bn-BD')+'</div>'
       +'<div style="margin-top:5px;background:#ddd;border-radius:4px;height:5px;"><div style="background:#c9a227;width:'+feePct+'%;height:100%;border-radius:4px;"></div></div>'
@@ -8771,21 +8765,42 @@ function renderTopStudents() {
   if(!el) return;
   var active = (data.students||[]).filter(function(s){ return !s.archived; });
   if(active.length===0) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">কোনো শিক্ষার্থী নেই।</p>'; return; }
-  var scored = active.map(function(s){ return { s:s, score:calcStudentScore(s.id) }; });
+  var monthStr = new Date().toISOString().slice(0,7);
+  var monthName = new Date().toLocaleDateString('bn-BD',{month:'long', year:'numeric'});
+  // মাসিক উপস্থিতি স্কোর
+  var scored = active.map(function(s) {
+    var present=0, absent=0;
+    Object.keys(data.attendance||{}).forEach(function(k){
+      if(!k.startsWith((s.cls||'')+'_'+monthStr)) return;
+      var v = data.attendance[k];
+      if(v[s.id]==='উপস্থিত') present++;
+      else if(v[s.id]==='অনুপস্থিত') absent++;
+    });
+    var attPct = (present+absent)>0 ? Math.round(present/(present+absent)*100) : 0;
+    // ফলাফল স্কোর — এই বছরের সর্বশেষ পরীক্ষা
+    var results = (data.results||[]).filter(function(r){ return r.studentId===s.id; });
+    var resultScore = 0;
+    if(results.length>0) {
+      var latest = results.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); })[0];
+      resultScore = Math.min(100, Math.round(Number(latest.total||0)/500*100));
+    }
+    var totalScore = Math.round(attPct*0.6 + resultScore*0.4);
+    return { s:s, score:totalScore, present:present, absent:absent, attPct:attPct };
+  });
   scored.sort(function(a,b){ return b.score-a.score; });
   var medals = ['🥇','🥈','🥉'];
-  el.innerHTML = scored.slice(0,5).map(function(item, i){
+  el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-align:center;">'+monthName+'</div>'
+    + scored.slice(0,5).map(function(item, i){
     var s=item.s, score=item.score;
-    var resultCount = (data.results||[]).filter(function(r){return r.studentId===s.id;}).length;
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
-      +'<div style="font-size:'+(i<3?'18':'13')+'px;width:22px;text-align:center;font-weight:700;color:'+(i===0?'#c9a227':i===1?'#aaa':i===2?'#cd7f32':'var(--text-muted)')+';">'+(medals[i]||i+1)+'</div>'
+      +'<div style="font-size:'+(i<3?'18':'13')+'px;width:24px;text-align:center;font-weight:700;color:'+(i===0?'#c9a227':i===1?'#aaa':i===2?'#cd7f32':'var(--text-muted)')+';">'+(medals[i]||i+1)+'</div>'
       +'<div style="flex:1;min-width:0;">'
         +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+s.name+'</div>'
-        +'<div style="font-size:10px;color:var(--text-muted);">'+s.cls+' · '+resultCount+' পরীক্ষা</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);">'+s.cls+' · হাজিরা '+item.attPct+'%</div>'
       +'</div>'
       +'<div style="text-align:right;">'
         +'<div style="font-weight:700;color:var(--primary);font-size:14px;">'+score+'</div>'
-        +'<div style="font-size:9px;color:var(--text-muted);">স্কোর</div>'
+        +'<div style="font-size:9px;color:var(--text-muted);">পয়েন্ট</div>'
       +'</div>'
     +'</div>';
   }).join('');
@@ -8818,20 +8833,44 @@ function renderTopTeachers() {
   if(!el) return;
   var teachers = (data.teachers||[]).filter(function(t){ return !t.archived; });
   if(teachers.length===0) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">কোনো শিক্ষক নেই।</p>'; return; }
-  var scored = teachers.map(function(t){ return { t:t, score:calcTeacherScore(t.id) }; });
+  var monthStr = new Date().toISOString().slice(0,7);
+  var monthName = new Date().toLocaleDateString('bn-BD',{month:'long', year:'numeric'});
+  // মাসিক স্কোর
+  var scored = teachers.map(function(t) {
+    // শিক্ষকের হাজিরা উপস্থিতি
+    var tPresent=0, tAbsent=0;
+    Object.values(data.attendance||{}).forEach(function(v){
+      if(v['t_'+t.id]==='উপস্থিত') tPresent++;
+      else if(v['t_'+t.id]==='অনুপস্থিত') tAbsent++;
+    });
+    var attPct = (tPresent+tAbsent)>0 ? Math.round(tPresent/(tPresent+tAbsent)*100) : 0;
+    // এই মাসে কতদিন হাজিরা নিয়েছেন
+    var takenThisMonth = Object.entries(data.attendance||{}).filter(function([k,v]){
+      return k.includes('_'+monthStr) && v._takenBy===t.id;
+    }).length;
+    var takenScore = Math.min(40, takenThisMonth * 3);
+    // এই মাসে মন্তব্য
+    var remarkThisMonth = (data.studentRemarks||[]).filter(function(r){
+      return r.teacherId===t.id && (r.date||'').slice(0,7)===monthStr;
+    }).length;
+    var remarkScore = Math.min(20, remarkThisMonth * 5);
+    var totalScore = Math.round(attPct*0.4 + takenScore + remarkScore);
+    return { t:t, score:totalScore, attPct:attPct, taken:takenThisMonth };
+  });
   scored.sort(function(a,b){ return b.score-a.score; });
   var medals = ['🥇','🥈','🥉'];
-  el.innerHTML = scored.slice(0,5).map(function(item, i){
+  el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-align:center;">'+monthName+'</div>'
+    + scored.slice(0,5).map(function(item, i){
     var t=item.t, score=item.score;
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
-      +'<div style="font-size:'+(i<3?'18':'13')+'px;width:22px;text-align:center;font-weight:700;color:'+(i===0?'#c9a227':i===1?'#aaa':i===2?'#cd7f32':'var(--text-muted)')+';">'+(medals[i]||i+1)+'</div>'
+      +'<div style="font-size:'+(i<3?'18':'13')+'px;width:24px;text-align:center;font-weight:700;color:'+(i===0?'#c9a227':i===1?'#aaa':i===2?'#cd7f32':'var(--text-muted)')+';">'+(medals[i]||i+1)+'</div>'
       +'<div style="flex:1;min-width:0;">'
         +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.name+'</div>'
-        +'<div style="font-size:10px;color:var(--text-muted);">'+(t.type||'শিক্ষক')+(t.assignedClass?' · '+t.assignedClass:'')+'</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);">'+(t.type||'শিক্ষক')+(t.assignedClass?' · '+t.assignedClass:'')+' · হাজিরা '+item.taken+' দিন</div>'
       +'</div>'
       +'<div style="text-align:right;">'
         +'<div style="font-weight:700;color:#7c3aed;font-size:14px;">'+score+'</div>'
-        +'<div style="font-size:9px;color:var(--text-muted);">স্কোর</div>'
+        +'<div style="font-size:9px;color:var(--text-muted);">পয়েন্ট</div>'
       +'</div>'
     +'</div>';
   }).join('');
