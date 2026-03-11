@@ -449,6 +449,39 @@
   /* edit mode toggle button shown always */
   #dashEditBtn { display:flex; }
 
+  /* ===== WIDGET RESIZE ===== */
+  .wg-slot { overflow:visible; }
+  .wg-slot > .card { box-sizing:border-box; overflow:hidden; }
+  .wg-slot > .card .card-body { overflow-y:auto; }
+
+  .wg-resize-se, .wg-resize-s { display:none; }
+  .dash-edit-mode .wg-resize-se {
+    display:flex; align-items:center; justify-content:center;
+    position:absolute; bottom:0; right:0; z-index:25;
+    width:26px; height:26px;
+    cursor:se-resize;
+    background:var(--primary);
+    border-radius:0 0 12px 0;
+    color:#fff; font-size:13px;
+    user-select:none; touch-action:none;
+  }
+  .dash-edit-mode .wg-resize-s {
+    display:block;
+    position:absolute; bottom:0; left:26px; right:26px; z-index:24;
+    height:8px; cursor:s-resize;
+    background:linear-gradient(var(--primary-light), var(--primary));
+    border-radius:0 0 4px 4px; opacity:.5;
+    user-select:none; touch-action:none;
+  }
+  .wg-size-badge {
+    display:none; position:absolute; bottom:10px; left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.6); color:#fff; border-radius:6px;
+    padding:2px 10px; font-size:11px; z-index:30; pointer-events:none;
+    white-space:nowrap; font-weight:700;
+  }
+  .wg-resizing .wg-size-badge { display:block; }
+
 </style>
 </head>
 <body>
@@ -9275,6 +9308,54 @@ function wgLoadLayout() {
 function wgSaveLayout(layout) {
   try { localStorage.setItem('mms_wg', JSON.stringify(layout)); } catch(e){}
 }
+// Heights stored separately: { widgetId: heightPx }
+function wgLoadHeights() {
+  try { var s=localStorage.getItem('mms_wg_h'); if(s) return JSON.parse(s); } catch(e){}
+  return {};
+}
+function wgSaveHeight(wid, h) {
+  var hs = wgLoadHeights(); hs[wid] = h;
+  try { localStorage.setItem('mms_wg_h', JSON.stringify(hs)); } catch(e){}
+}
+function wgResetHeights() {
+  try { localStorage.removeItem('mms_wg_h'); } catch(e){}
+}
+
+// ---- Resize logic ----
+var _rzWid=null, _rzSlot=null, _rzStartY=0, _rzStartH=0;
+
+function wgStartResize(e, wid, slot) {
+  e.preventDefault(); e.stopPropagation();
+  _rzWid = wid; _rzSlot = slot;
+  _rzStartY = (e.touches ? e.touches[0].clientY : e.clientY);
+  _rzStartH = slot.offsetHeight;
+  slot.classList.add('wg-resizing');
+  document.addEventListener('mousemove', wgDoResize);
+  document.addEventListener('touchmove', wgDoResize, {passive:false});
+  document.addEventListener('mouseup',   wgEndResize);
+  document.addEventListener('touchend',  wgEndResize);
+}
+function wgDoResize(e) {
+  if(!_rzSlot) return;
+  if(e.cancelable) e.preventDefault();
+  var y = e.touches ? e.touches[0].clientY : e.clientY;
+  var newH = Math.max(80, _rzStartH + (y - _rzStartY));
+  _rzSlot.style.height = newH+'px';
+  var badge = _rzSlot.querySelector('.wg-size-badge');
+  if(badge) badge.textContent = Math.round(newH)+'px';
+}
+function wgEndResize() {
+  if(_rzSlot) {
+    var h = _rzSlot.offsetHeight;
+    wgSaveHeight(_rzWid, h);
+    _rzSlot.classList.remove('wg-resizing');
+  }
+  _rzWid=null; _rzSlot=null;
+  document.removeEventListener('mousemove', wgDoResize);
+  document.removeEventListener('touchmove', wgDoResize);
+  document.removeEventListener('mouseup',   wgEndResize);
+  document.removeEventListener('touchend',  wgEndResize);
+}
 
 // ---- Touch drag state ----
 var _touchDragWid = null;
@@ -9308,6 +9389,29 @@ function renderWidgets() {
       +'<button class="wg-remove-btn" onclick="wgRemove(\''+wid+'\')">✕ বাদ</button>';
     slot.appendChild(hbar);
     slot.insertAdjacentHTML('beforeend', def.render());
+
+    // Resize handles
+    var rseSE = document.createElement('div');
+    rseSE.className = 'wg-resize-se';
+    rseSE.title = 'টেনে সাইজ পরিবর্তন করুন';
+    rseSE.textContent = '⇲';
+    var rseS  = document.createElement('div');
+    rseS.className = 'wg-resize-s';
+    var badge = document.createElement('div');
+    badge.className = 'wg-size-badge';
+    slot.appendChild(rseSE);
+    slot.appendChild(rseS);
+    slot.appendChild(badge);
+
+    // Restore saved height
+    var heights = wgLoadHeights();
+    if(heights[wid]) slot.style.height = heights[wid]+'px';
+
+    // Resize events — SE corner (mouse + touch)
+    rseSE.addEventListener('mousedown',  function(e){ wgStartResize(e, wid, slot); });
+    rseSE.addEventListener('touchstart', function(e){ wgStartResize(e, wid, slot); }, {passive:false});
+    rseS.addEventListener('mousedown',   function(e){ wgStartResize(e, wid, slot); });
+    rseS.addEventListener('touchstart',  function(e){ wgStartResize(e, wid, slot); }, {passive:false});
 
     // ---- Mouse/Desktop drag events ----
     slot.setAttribute('draggable', _dashEditMode ? 'true' : 'false');
@@ -9434,8 +9538,9 @@ function dashEditMode(on) {
 }
 
 function resetWidgetLayout() {
-  if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন?')) return;
+  if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন? সব সাইজ ও সাজানো ডিফল্ট হয়ে যাবে।')) return;
   localStorage.removeItem('mms_wg');
+  wgResetHeights();
   renderWidgets();
   toast('ডিফল্ট লেআউট পুনরুদ্ধার হয়েছে।');
 }
@@ -9620,6 +9725,7 @@ var _fns = {
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
+  wgStartResize, wgDoResize, wgEndResize,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
