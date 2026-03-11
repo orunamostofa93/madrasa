@@ -366,7 +366,23 @@
   #dashEditBtn { display:flex; }
 
   /* Each widget slot */
-  .wg-slot { position:relative; border-radius:12px; transition:transform .15s, box-shadow .15s; }
+  .wg-slot { position:relative; border-radius:12px; }
+
+  /* Normal mode — no resize */
+  .wg-slot > .card {
+    overflow:hidden;
+    min-width:200px;
+    min-height:60px;
+  }
+
+  /* ✅ Resize mode — CSS resize handle appears at edges/corners */
+  .wg-resize-mode .wg-slot > .card {
+    overflow:auto;
+    resize:both;
+    border:2px dashed var(--primary) !important;
+    box-shadow:0 0 0 3px var(--primary-ultra-light);
+    cursor:default;
+  }
 
   /* Control bar — hidden normally, shown in edit mode */
   .wg-ctrl { display:none; }
@@ -382,6 +398,10 @@
     border-radius:0 0 12px 12px !important;
     margin-top:14px;
   }
+  /* resize mode + edit mode combined */
+  .dash-edit-mode.wg-resize-mode .wg-slot > .card {
+    margin-top:14px;
+  }
 
   /* Arrow move buttons */
   .wg-btn {
@@ -393,9 +413,7 @@
     flex-shrink:0;
   }
   .wg-btn:active { transform:scale(.92); }
-  .wg-btn-move {
-    background:rgba(255,255,255,.22); color:#fff;
-  }
+  .wg-btn-move { background:rgba(255,255,255,.22); color:#fff; }
   .wg-btn-move:disabled { opacity:.25; cursor:default; }
   .wg-btn-move:not(:disabled):active { background:rgba(255,255,255,.45); }
 
@@ -410,17 +428,12 @@
   .wg-btn-del {
     background:rgba(220,50,50,.5); color:#fff;
     border:1px solid rgba(255,255,255,.3);
-    padding:4px 10px; font-size:12px;
-    white-space:nowrap;
+    padding:4px 10px; font-size:12px; white-space:nowrap;
   }
   .wg-btn-del:active { background:rgba(200,30,30,.9); }
 
   /* Moving animation */
-  .wg-slot.wg-moving {
-    transform:scale(.98);
-    box-shadow:0 6px 24px rgba(0,0,0,.18);
-    z-index:10;
-  }
+  .wg-slot.wg-moving { transform:scale(.98); box-shadow:0 6px 24px rgba(0,0,0,.18); z-index:10; }
 
   /* Widget picker */
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
@@ -569,11 +582,14 @@
       <div id="dashWidgetToolbar" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:10px;padding:10px 16px;margin-bottom:14px;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
         <div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;">
           ✏️ ড্যাশবোর্ড সম্পাদনা
-          <span style="font-size:11px;font-weight:400;opacity:.8;">⠿ টেনে সাজান &nbsp;·&nbsp; + যোগ করুন &nbsp;·&nbsp; ✕ সরান</span>
+          <span style="font-size:11px;font-weight:400;opacity:.8;">▲▼ সাজান &nbsp;·&nbsp; + যোগ করুন &nbsp;·&nbsp; ✕ বাদ দিন</span>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button id="wgResizeBtn" onclick="toggleWidgetResize()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
+            ↔ রিসাইজ উইজেট
+          </button>
           <button onclick="resetWidgetLayout()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;">↺ ডিফল্ট</button>
-          <button onclick="openWidgetPicker()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">+ উইজেট যোগ করুন</button>
+          <button onclick="openWidgetPicker()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">+ উইজেট যোগ</button>
           <button onclick="dashEditMode(false)" style="background:#fff;color:var(--primary);border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-weight:700;font-family:inherit;">✅ সম্পন্ন</button>
         </div>
       </div>
@@ -9319,6 +9335,10 @@ function renderWidgets() {
   });
 
   renderDashboardData();
+  // Restore saved sizes
+  setTimeout(wgRestoreSizes, 50);
+  // Re-apply resize mode class if active
+  if(_wgResizeMode) container.classList.add('wg-resize-mode');
 }
 
 function wgMove(wid, dir) {
@@ -9363,8 +9383,63 @@ function dashEditMode(on) {
   var eb = document.getElementById('dashEditBtn');
   if(tb) { if(on) tb.classList.add('active'); else tb.classList.remove('active'); }
   if(eb) eb.style.display = on ? 'none' : 'flex';
+  // Turn off resize mode when closing edit
+  if(!on) {
+    var c = document.getElementById('dashWidgetContainer');
+    if(c) c.classList.remove('wg-resize-mode');
+    var rb = document.getElementById('wgResizeBtn');
+    if(rb) { rb.style.background='rgba(255,255,255,.15)'; rb.style.fontWeight=''; }
+  }
   renderWidgets();
   if(!on) toast('ড্যাশবোর্ড সংরক্ষিত ✅');
+}
+
+var _wgResizeMode = false;
+function toggleWidgetResize() {
+  _wgResizeMode = !_wgResizeMode;
+  var c = document.getElementById('dashWidgetContainer');
+  var btn = document.getElementById('wgResizeBtn');
+  if(_wgResizeMode) {
+    c.classList.add('wg-resize-mode');
+    btn.style.background = 'rgba(255,255,255,.45)';
+    btn.style.fontWeight = '700';
+    btn.textContent = '✅ রিসাইজ চালু — প্রান্ত ধরে টানুন';
+    toast('উইজেটের প্রান্ত বা কোণা ধরে টেনে সাইজ পরিবর্তন করুন');
+    // Save sizes on mouseup/touchend inside container
+    c.addEventListener('mouseup', wgSaveSizesOnStop);
+    c.addEventListener('touchend', wgSaveSizesOnStop);
+  } else {
+    c.classList.remove('wg-resize-mode');
+    btn.style.background = 'rgba(255,255,255,.15)';
+    btn.style.fontWeight = '';
+    btn.textContent = '↔ রিসাইজ উইজেট';
+    c.removeEventListener('mouseup', wgSaveSizesOnStop);
+    c.removeEventListener('touchend', wgSaveSizesOnStop);
+  }
+}
+
+function wgSaveSizesOnStop() {
+  var sizes = {};
+  document.querySelectorAll('.wg-slot').forEach(function(slot) {
+    var wid = slot.dataset.wid;
+    var card = slot.querySelector('.card');
+    if(card && card.style.width) sizes[wid+'_w'] = card.style.width;
+    if(card && card.style.height) sizes[wid+'_h'] = card.style.height;
+  });
+  try { localStorage.setItem('mms_wg_sizes', JSON.stringify(sizes)); } catch(e){}
+}
+
+function wgRestoreSizes() {
+  try {
+    var sizes = JSON.parse(localStorage.getItem('mms_wg_sizes')||'{}');
+    document.querySelectorAll('.wg-slot').forEach(function(slot) {
+      var wid = slot.dataset.wid;
+      var card = slot.querySelector('.card');
+      if(!card) return;
+      if(sizes[wid+'_w']) card.style.width = sizes[wid+'_w'];
+      if(sizes[wid+'_h']) card.style.height = sizes[wid+'_h'];
+    });
+  } catch(e){}
 }
 
 function resetWidgetLayout() {
@@ -9553,7 +9628,7 @@ var _fns = {
   filterLeaveStatus, updateLeaveApplicantList, fillLeaveApplicant, checkLeaveAdvanceNotice,
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
-  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
+  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd, toggleWidgetResize,
   wgStartResize, wgDoResize, wgEndResize,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
