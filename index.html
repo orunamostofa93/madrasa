@@ -478,25 +478,35 @@
 
       <!-- Dashboard Charts Row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;" id="dashChartsRow">
-        <!-- Attendance Donut -->
+        <!-- Attendance Visual -->
         <div class="card" style="min-height:220px;">
-          <div class="card-header"><span class="card-title">📊 হাজিরা চিত্র (আজ)</span></div>
-          <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
-            <div style="position:relative;width:130px;height:130px;">
-              <svg viewBox="0 0 36 36" style="width:130px;height:130px;transform:rotate(-90deg);">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e8f5ee" stroke-width="3.5"/>
-                <circle id="attDonutPresent" cx="18" cy="18" r="15.9" fill="none" stroke="var(--primary)" stroke-width="3.5" stroke-dasharray="0 100"/>
-                <circle id="attDonutAbsent" cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0"/>
+          <div class="card-header"><span class="card-title">📊 আজকের উপস্থিতি</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 14px;">
+            <!-- Ring chart -->
+            <div style="position:relative;width:120px;height:120px;">
+              <svg viewBox="0 0 36 36" style="width:120px;height:120px;transform:rotate(-90deg);">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f0f0f0" stroke-width="4"/>
+                <circle id="attDonutPresent" cx="18" cy="18" r="15.9" fill="none" stroke="var(--primary)" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"/>
+                <circle id="attDonutAbsent" cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="4" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round"/>
               </svg>
               <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-                <div id="attDonutPct" style="font-size:20px;font-weight:700;color:var(--primary);">-</div>
+                <div id="attDonutPct" style="font-size:22px;font-weight:800;color:var(--primary);line-height:1;">-</div>
                 <div style="font-size:9px;color:var(--text-muted);">উপস্থিতি</div>
               </div>
             </div>
-            <div style="display:flex;gap:14px;font-size:12px;">
-              <span><span style="display:inline-block;width:10px;height:10px;background:var(--primary);border-radius:50%;margin-right:4px;"></span><span id="attLegPresent">উপস্থিত: -</span></span>
-              <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:50%;margin-right:4px;"></span><span id="attLegAbsent">অনুপস্থিত: -</span></span>
+            <!-- Legend -->
+            <div style="display:flex;gap:12px;font-size:12px;margin-top:4px;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="width:10px;height:10px;background:var(--primary);border-radius:50%;display:inline-block;"></span>
+                <span id="attLegPresent" style="font-weight:600;">উপস্থিত: -</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="width:10px;height:10px;background:#ef4444;border-radius:50%;display:inline-block;"></span>
+                <span id="attLegAbsent" style="font-weight:600;">অনুপস্থিত: -</span>
+              </div>
             </div>
+            <!-- Today's class-wise mini bar -->
+            <div id="attClassMini" style="width:100%;margin-top:6px;font-size:10px;"></div>
           </div>
         </div>
         <!-- Fee Bar Chart -->
@@ -551,8 +561,18 @@
           <div class="card-body" id="todaySummary"></div>
         </div>
         <div class="card">
-          <div class="card-header"><span class="card-title">🏆 সেরা শিক্ষার্থী</span></div>
+          <div class="card-header">
+            <span class="card-title">🏆 সেরা শিক্ষার্থী</span>
+            <span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + ফলাফল</span>
+          </div>
           <div class="card-body" id="topStudents"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⭐ সেরা শিক্ষক</span>
+            <span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + হাজিরা</span>
+          </div>
+          <div class="card-body" id="topTeachers"></div>
         </div>
         <!-- অনলাইন পেমেন্ট অনুমোদন -->
         <div class="card" style="grid-column:1/-1;">
@@ -629,7 +649,9 @@
             </select>
           </div>
           <!-- Summary Cards -->
-          <div id="feeSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;"></div>
+          <div id="feeSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;"></div>
+          <!-- Fee Type Breakdown -->
+          <div id="feeTypeBreakdown" style="margin-bottom:16px;"></div>
           <!-- Student List -->
           <div id="feeStudentList"></div>
         </div>
@@ -1425,7 +1447,8 @@
           <hr class="section-divider">
           <div class="btn-group">
             <button class="btn btn-primary" onclick="saveSettings()">💾 সংরক্ষণ করুন</button>
-            <button class="btn btn-danger btn-sm" onclick="clearAllData()">⚠️ সব ডেটা মুছুন</button>
+            <button class="btn btn-outline btn-sm" style="border-color:var(--danger);color:var(--danger);" onclick="openSelectiveReset()">🗑️ নির্বাচিত ডেটা রিসেট</button>
+            <button class="btn btn-danger btn-sm" onclick="clearAllData()">⚠️ সম্পূর্ণ রিসেট</button>
           </div>
         </div>
       </div>
@@ -2598,16 +2621,24 @@ function renderDashboard() {
     '<div class="stat-card"><div class="stat-icon gold">👨‍🏫</div><div><div class="stat-label">শিক্ষক ও স্টাফ</div><div class="stat-value">'+data.teachers.length+'</div><div class="stat-sub">কর্মরত</div></div></div>'+
     '<div class="stat-card"><div class="stat-icon blue">💰</div><div><div class="stat-label">মোট আয়</div><div class="stat-value">'+incomeTotal.toLocaleString('bn-BD')+'</div><div class="stat-sub">টাকা</div></div></div>'+
     '<div class="stat-card"><div class="stat-icon red">💸</div><div><div class="stat-label">মোট ব্যয়</div><div class="stat-value">'+expenseTotal.toLocaleString('bn-BD')+'</div><div class="stat-sub">টাকা</div></div></div>'+
-    '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'attendance\')">'+
-      '<div class="stat-icon green">✅</div><div><div class="stat-label">আজকের হাজিরা</div>'+
-      '<div class="stat-value">'+attPct+'%</div>'+
-      '<div style="margin-top:6px;background:#ddd;border-radius:4px;height:6px;"><div style="background:var(--primary);width:'+attPct+'%;height:100%;border-radius:4px;transition:.3s;"></div></div>'+
-      '<div class="stat-sub">'+presentToday+' উপস্থিত / '+absentToday+' অনুপস্থিত</div></div></div>'+
-    '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'fee\')">'+
-      '<div class="stat-icon gold">💳</div><div><div class="stat-label">এ মাসের ফি আদায়</div>'+
-      '<div class="stat-value">৳ '+monthlyFeePaid.toLocaleString()+'</div>'+
-      '<div style="margin-top:6px;background:#ddd;border-radius:4px;height:6px;"><div style="background:#c9a227;width:'+feePct+'%;height:100%;border-radius:4px;transition:.3s;"></div></div>'+
-      '<div class="stat-sub">লক্ষ্য: ৳ '+monthlyFeeTarget.toLocaleString()+'</div></div></div>';
+    (function(){
+    var paidStuIds = new Set((data.feePayments||[]).filter(function(p){ return p.personType==='student'&&(p.date||'').slice(0,7)===monthStr&&p.feeType==='মাসিক বেতন'; }).map(function(p){return p.personId;}));
+    var activeStu = (data.students||[]).filter(function(s){return !s.archived;});
+    var feeCount = paidStuIds.size;
+    var feeNotCount = activeStu.length - feeCount;
+    return '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'attendance\')">'+'<div class="stat-icon green">📋</div><div>'
+      +'<div class="stat-label">আজকের উপস্থিতি</div>'
+      +'<div class="stat-value">'+attPct+'%</div>'
+      +'<div style="margin-top:5px;background:#ddd;border-radius:4px;height:5px;"><div style="background:var(--primary);width:'+attPct+'%;height:100%;border-radius:4px;"></div></div>'
+      +'<div style="margin-top:4px;display:flex;gap:8px;font-size:11px;">'+'<span style="color:var(--primary-light);">✅ '+presentToday+'</span><span style="color:var(--danger);">❌ '+absentToday+'</span>'+'</div>'
+      +'</div></div>'
+      +'<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'fee\')">'+'<div class="stat-icon gold">💳</div><div>'
+      +'<div class="stat-label">এ মাসের ফি আদায়</div>'
+      +'<div class="stat-value">৳ '+monthlyFeePaid.toLocaleString('bn-BD')+'</div>'
+      +'<div style="margin-top:5px;background:#ddd;border-radius:4px;height:5px;"><div style="background:#c9a227;width:'+feePct+'%;height:100%;border-radius:4px;"></div></div>'
+      +'<div style="margin-top:4px;display:flex;gap:8px;font-size:11px;"><span style="color:#2d7a4f;">✅ '+feeCount+' জন</span><span style="color:#c0392b;">⏳ '+feeNotCount+' বাকি</span></div>'
+      +'</div></div>';
+  })()
 
   // ---- CHARTS ----
   // Attendance Donut
@@ -2624,6 +2655,21 @@ function renderDashboard() {
   if(el3) el3.textContent = attTotal>0 ? attPct+'%' : '-';
   if(el4) el4.textContent = 'উপস্থিত: '+presentToday;
   if(el5) el5.textContent = 'অনুপস্থিত: '+absentToday;
+  // Class-wise mini bar in attendance chart
+  var attClassMini = document.getElementById('attClassMini');
+  if(attClassMini && attTotal > 0) {
+    var clsAtt = {};
+    Object.entries(data.attendance||{}).forEach(function([k,v]){
+      if(!k.endsWith('_'+today)) return;
+      var cls = k.replace('_'+today,'');
+      if(!clsAtt[cls]) clsAtt[cls]={p:0,a:0};
+      Object.entries(v).forEach(function([sid,st]){ if(sid.startsWith('_')) return; if(st==='উপস্থিত') clsAtt[cls].p++; else if(st==='অনুপস্থিত') clsAtt[cls].a++; });
+    });
+    attClassMini.innerHTML = Object.entries(clsAtt).map(function(e){
+      var cls=e[0], v=e[1], tot=v.p+v.a, pct=tot>0?Math.round(v.p/tot*100):0;
+      return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="width:38px;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);">'+cls+'</span><div style="flex:1;background:#eee;border-radius:3px;height:8px;"><div style="width:'+pct+'%;background:var(--primary);height:100%;border-radius:3px;"></div></div><span style="width:25px;font-size:9px;font-weight:700;color:var(--primary);text-align:right;">'+pct+'%</span></div>';
+    }).join('');
+  } else if(attClassMini) { attClassMini.innerHTML = ''; }
 
   // Fee Bar Chart (last 6 months)
   var feeBar = document.getElementById('feeBarChart');
@@ -2726,25 +2772,15 @@ function renderDashboard() {
         <div style="font-size:20px;font-weight:700;color:var(--info);">${todayAtt.length}</div><div class="text-muted">উপস্থিতি এন্ট্রি</div>
       </div>
     </div>`;
-  // Top students
-  const ts = document.getElementById('topStudents');
-  if(data.results.length===0) { ts.innerHTML='<p class="text-muted">কোনো ফলাফল নেই।</p>'; return; }
-  const byStudent = {};
-  data.results.forEach(r=>{ if(!byStudent[r.studentId]||byStudent[r.studentId]<r.total) byStudent[r.studentId]=r.total; });
-  const top = Object.entries(byStudent).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  ts.innerHTML = top.map(([id,total],i)=>{
-    const s = data.students.find(x=>x.id===id);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="background:${i===0?'var(--accent)':'var(--primary-ultra-light)'};color:${i===0?'#1a2e22':'var(--primary)'};width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${i+1}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;">${s?s.name:'অজানা'}</div><div class="text-muted">${s?s.cls:''}</div></div>
-      <div style="font-weight:700;color:var(--primary);">${total}</div>
-    </div>`;
-  }).join('');
+  // Top students — renderTopStudents handles this
 
   // অনলাইন পেমেন্ট pending
   renderPendingPayments();
   // আজকের অনুপস্থিত
   renderTodayAbsent();
+  // সেরা শিক্ষার্থী ও শিক্ষক
+  renderTopStudents();
+  renderTopTeachers();
 }
 
 function renderTodayAbsent() {
@@ -3132,12 +3168,15 @@ function renderStudents() {
   const cls = document.getElementById('studentClassFilter')?.value||'';
   const archivedFilter = document.getElementById('studentArchivedFilter')?.value||'active';
   populateClassDropdowns();
+  // শ্রেণি শিক্ষক: শুধু নিজের ক্লাসের ছাত্র
+  const teacherOwnCls = (currentUser && currentUser.role !== 'admin' && currentUser.cls) ? currentUser.cls.trim() : '';
   let list = data.students.filter(s=>{
     const matchSearch = s.name?.toLowerCase().includes(search)||String(s.roll).includes(search)||(s.code||'').toLowerCase().includes(search);
     const matchCls = !cls||(s.cls||'').trim()===cls.trim();
     const isArchived = !!s.archived;
     const matchArchived = archivedFilter==='all' || (archivedFilter==='archived' ? isArchived : !isArchived);
-    return matchSearch&&matchCls&&matchArchived;
+    const matchTeacherCls = !teacherOwnCls || (s.cls||'').trim()===teacherOwnCls;
+    return matchSearch&&matchCls&&matchArchived&&matchTeacherCls;
   });
   document.getElementById('studentsBody').innerHTML = list.map(s=>{
     const due = calcStudentDue(s.id);
@@ -4401,15 +4440,23 @@ function loadAttendance() {
   const takenByEl = document.getElementById('attTakenBy');
   if(saved._takenBy && takenByEl) takenByEl.value = saved._takenBy;
 
-  document.getElementById('attendanceGrid').innerHTML = `
+  const isLocked = saved._locked === true;
+  const lockedBy = saved._takenByName || '';
+  const lockBanner = isLocked
+    ? `<div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:12px;">
+        🔒 <b>সংরক্ষিত ও লক:</b> ${lockedBy?lockedBy+' কর্তৃক সংরক্ষিত। ':''} ছুটির আবেদন অনুমোদনে স্বয়ংক্রিয় পরিবর্তন হবে।
+        <button class="btn btn-sm" style="margin-left:auto;background:#dc3545;color:#fff;" onclick="unlockAttendance('${key}')">🔓 Unlock (Admin)</button>
+      </div>` : '';
+  document.getElementById('attendanceGrid').innerHTML = lockBanner + `
     <div style="margin-bottom:10px;display:flex;gap:8px;">
-      <button class="btn btn-primary btn-sm" onclick="markAll('${key}','উপস্থিত')">সবাই উপস্থিত</button>
-      <button class="btn btn-danger btn-sm" onclick="markAll('${key}','অনুপস্থিত')">সবাই অনুপস্থিত</button>
+      <button class="btn btn-primary btn-sm" onclick="markAll('${key}','উপস্থিত')" ${isLocked?'disabled style="opacity:.5;"':''}>সবাই উপস্থিত</button>
+      <button class="btn btn-danger btn-sm" onclick="markAll('${key}','অনুপস্থিত')" ${isLocked?'disabled style="opacity:.5;"':''}>সবাই অনুপস্থিত</button>
     </div>
     <div class="attendance-grid">
     ${students.map(s=>{
       const status = saved[s.id]||'';
       const leaveReason = saved[s.id+'_leaveReason']||'';
+      const attRemark = saved[s.id+'_remark']||'';
       const isLeave = status==='ছুটি';
       const _mob = getContactMobile(s); const callBtn = _mob ? `<a href="tel:${_mob}" class="att-call-btn" title="কল করুন">📞 কল</a>` : '';
       if(isLeave) {
@@ -4423,10 +4470,10 @@ function loadAttendance() {
       }
       return `<div class="att-card">
         <div style="font-size:20px;">${s.gender==='মহিলা'?'👩':'👦'}</div>
-        <div style="flex:1"><div class="att-name">${s.name}</div><div class="text-muted">রোল: ${s.roll}</div></div>
+        <div style="flex:1"><div class="att-name">${s.name}</div><div class="text-muted">রোল: ${s.roll}</div>${attRemark?`<div style="font-size:9px;color:#059669;font-style:italic;">${attRemark}</div>`:''}</div>
         <div class="att-toggle" style="display:flex;gap:4px;align-items:center;">
-          <button class="att-btn ${status==='উপস্থিত'?'active-present':'present'}" onclick="setAtt('${key}','${s.id}','উপস্থিত',this)">উপ.</button>
-          <button class="att-btn ${status==='অনুপস্থিত'?'active-absent':'absent'}" onclick="setAtt('${key}','${s.id}','অনুপস্থিত',this)">অনু.</button>
+          <button class="att-btn ${status==='উপস্থিত'?'active-present':'present'}" onclick="setAtt('${key}','${s.id}','উপস্থিত',this)" ${isLocked?'disabled style="opacity:.6;"':''}>উপ.</button>
+          <button class="att-btn ${status==='অনুপস্থিত'?'active-absent':'absent'}" onclick="setAtt('${key}','${s.id}','অনুপস্থিত',this)" ${isLocked?'disabled style="opacity:.6;"':''}>অনু.</button>
           <span id="callbtn-${s.id}" style="display:${status==='অনুপস্থিত'?'inline':'none'}">${callBtn}</span>
         </div>
       </div>`;
@@ -4435,6 +4482,7 @@ function loadAttendance() {
 }
 function setAtt(key, sid, status, btn) {
   if(!data.attendance[key]) data.attendance[key]={};
+  if(data.attendance[key]._locked) { toast('হাজিরা লক আছে। Unlock করুন।','error'); return; }
   data.attendance[key][sid] = status;
   const card = btn.closest('.att-card');
   card.querySelectorAll('.att-btn').forEach(b=>{ b.classList.remove('active-present','active-absent'); });
@@ -4453,15 +4501,32 @@ function saveAttendance() {
   const cls = document.getElementById('attClass').value;
   const dt = document.getElementById('attDate').value;
   const takenById = document.getElementById('attTakenBy').value;
-  if(cls && dt && takenById) {
-    const key = `${cls}_${dt}`;
-    if(!data.attendance[key]) data.attendance[key] = {};
+  if(!cls||!dt) { toast('শ্রেণি ও তারিখ নির্বাচন করুন!','error'); return; }
+  const key = `${cls}_${dt}`;
+  if(!data.attendance[key]) data.attendance[key] = {};
+  if(takenById) {
     const teacher = data.teachers.find(t=>t.id===takenById);
     data.attendance[key]._takenBy = takenById;
     data.attendance[key]._takenByName = teacher ? teacher.name : '';
   }
+  // Lock করো — পরে edit করা যাবে না (ছুটি approval ছাড়া)
+  data.attendance[key]._locked = true;
+  data.attendance[key]._savedAt = new Date().toISOString();
   save('attendance');
-  toast('উপস্থিতি সংরক্ষিত হয়েছে। ✅');
+  toast('উপস্থিতি সংরক্ষিত ও লক হয়েছে। ✅');
+  loadAttendance(); // Re-render to show locked state
+}
+
+function unlockAttendance(key) {
+  if(!currentUser || currentUser.role !== 'admin') { toast('শুধু Admin Unlock করতে পারবেন।','error'); return; }
+  var pin = prompt('Admin PIN দিন:');
+  if(!pin || pin.trim() !== String(data.settings.adminPin||'1234')) { toast('ভুল PIN।','error'); return; }
+  if(data.attendance[key]) {
+    data.attendance[key]._locked = false;
+    save('attendance');
+    loadAttendance();
+    toast('হাজিরা Unlock হয়েছে।');
+  }
 }
 function renderAttReport() {
   const cls = document.getElementById('attReportClass').value;
@@ -4693,6 +4758,22 @@ function filterLeaveStatus(status, el) {
 function updateLeaveApplicantList() {
   var type = document.getElementById('leaveApplicantType').value;
   var sel = document.getElementById('leaveApplicantId');
+  // Non-admin teacher: নিজে শুধু নিজেকে দেখবে
+  if(currentUser && currentUser.role !== 'admin' && currentUser.id) {
+    var t = data.teachers.find(function(x){ return x.id===currentUser.id; });
+    if(t) {
+      // Force to teacher type
+      document.getElementById('leaveApplicantType').value = 'teacher';
+      document.getElementById('leaveApplicantType').disabled = true;
+      sel.innerHTML = '<option value="'+t.id+'">'+t.name+' ('+t.type+')</option>';
+      sel.value = t.id;
+      sel.disabled = true;
+      fillLeaveApplicant();
+    }
+    return;
+  }
+  document.getElementById('leaveApplicantType').disabled = false;
+  sel.disabled = false;
   if(type==='student') {
     sel.innerHTML = '<option value="">নির্বাচন করুন</option>' + data.students.map(s=>`<option value="${s.id}">${s.name} (${s.cls})</option>`).join('');
   } else {
@@ -4841,17 +4922,16 @@ function convertLeaveToAttendance(lv) {
   var sid = lv.applicantId;
   var s = (data.students||[]).find(x=>x.id===sid);
   if(!s) return;
-  // ছুটির প্রতিটা দিনে attendance mark করো
   var cur = new Date(lv.from);
   var end = new Date(lv.to);
   while(cur<=end) {
     var dateStr = cur.toISOString().split('T')[0];
     var key = s.cls+'_'+dateStr;
     if(!data.attendance[key]) data.attendance[key]={};
-    // ছুটি হিসেবে mark — override করো
-    data.attendance[key][sid] = 'ছুটি';
+    // অনুপস্থিত থেকে উপস্থিত (ছুটিতে) convert + remark
+    data.attendance[key][sid] = 'উপস্থিত'; // ছুটি = গণনায় উপস্থিত
+    data.attendance[key][sid+'_remark'] = '✅ ছুটি অনুমোদিত: '+(lv.reason||lv.ltype||'');
     data.attendance[key][sid+'_leaveId'] = lv.id;
-    data.attendance[key][sid+'_leaveReason'] = lv.reason||lv.ltype;
     cur.setDate(cur.getDate()+1);
   }
 }
@@ -5969,6 +6049,7 @@ function openStudentProfile(sid) {
       </div>
     </div>`;
   openModal('studentProfileModal');
+  setTimeout(function(){ addStudentRankingToProfile(sid); }, 50);
 }
 
 // ===================== TEACHER PROFILE =====================
@@ -6141,6 +6222,7 @@ function openTeacherProfile(tid) {
     '</div>'+
     '</div>';
   openModal('teacherProfileModal');
+  setTimeout(function(){ addTeacherRankingToProfile(tid); }, 50);
 }
 
 function deleteFeePayment(fid, personType, personId) {
@@ -6507,7 +6589,9 @@ function feeSearchHandler(q) {
 
 function renderFeePage() {
   // Summary cards
-  var totalStudents = data.students.length;
+  // শিক্ষকের নিজের ক্লাসের ছাত্র
+  var _teacherCls = (currentUser && currentUser.role !== 'admin' && currentUser.cls) ? currentUser.cls.trim() : '';
+  var totalStudents = _teacherCls ? data.students.filter(function(s){ return (s.cls||'').trim()===_teacherCls; }).length : data.students.length;
   var totalCollected = data.feePayments.filter(function(f){return f.personType==='student';}).reduce(function(a,b){return a+Number(b.amount);},0);
   var totalDue = data.students.reduce(function(sum,s){return sum + calcStudentDue(s.id);},0);
   var todayStr = new Date().toISOString().split('T')[0];
@@ -6520,6 +6604,7 @@ function renderFeePage() {
     {icon:'📅', label:'আজকের আদায়', val:'৳'+todayAmt.toLocaleString('bn-BD'), color:'#c9a227'},
   ].map(function(c){ return '<div style="background:'+c.color+'15;border:1.5px solid '+c.color+'30;border-radius:var(--radius-sm);padding:14px;text-align:center;"><div style="font-size:24px;">'+c.icon+'</div><div style="font-size:11px;color:var(--text-muted);margin:2px 0;">'+c.label+'</div><div style="font-size:18px;font-weight:800;color:'+c.color+';">'+c.val+'</div></div>'; }).join('');
 
+  renderFeeTypeSummary();
   feeSearchHandler('');
   renderFeeHistory();
 }
@@ -7771,6 +7856,11 @@ function renderTeacherAttPage() {
   var extraCls = [];
   data.students.forEach(function(s){ if(s.cls && classes.indexOf(s.cls.trim())===-1 && extraCls.indexOf(s.cls.trim())===-1) extraCls.push(s.cls.trim()); });
   var allCls = classes.concat(extraCls);
+  // শ্রেণি শিক্ষক: শুধু নিজের ক্লাস দেখাবে
+  if(currentUser && currentUser.cls) {
+    allCls = allCls.filter(function(c){ return c.trim()===currentUser.cls.trim(); });
+    if(allCls.length===0) allCls = [currentUser.cls];
+  }
   sel.innerHTML = '<option value="">শ্রেণি নির্বাচন করুন</option>' +
     allCls.map(c => `<option value="${c}">${c}</option>`).join('');
   // assigned class থাকলে auto-select, তারপর load
@@ -8579,14 +8669,15 @@ function showCustomUserDash() {
   document.getElementById('main').style.display = 'flex';
   var perms = getTeacherPerms(currentUser.id) || { pages:[], writes:[] };
   var allowedPages = perms.pages||[];
-  // Filter nav items
+  // Filter nav items — always show dashboard + profile link
   document.querySelectorAll('.nav-item').forEach(function(nav) {
     var oc = nav.getAttribute('onclick')||'';
     var m = oc.match(/showPage\('([^']+)'\)/);
     if(m) {
-      nav.style.display = allowedPages.indexOf(m[1]) > -1 ? '' : 'none';
+      nav.style.display = (allowedPages.indexOf(m[1]) > -1 || m[1]==='dashboard') ? '' : 'none';
     }
   });
+  // Add "আমার প্রোফাইল" button to header
   init();
   var firstPage = allowedPages[0] || 'dashboard';
   // Wrap showPage for this user
@@ -8598,6 +8689,7 @@ function showCustomUserDash() {
     '<div class="header-title" style="font-size:14px;">'+currentUser.name
     +' <span style="font-size:11px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;font-weight:400;">'+roleLabel+'</span></div>'
     +'<div id="headerDate" style="font-size:12px;"></div>'
+    +'<button class="header-btn btn-outline" onclick="showMyProfile()" style="font-size:12px;margin-right:4px;">👤 আমার প্রোফাইল</button>'
     +'<button class="header-btn btn-outline" onclick="doLogout()" style="font-size:12px;">🚪 লগআউট</button>';
   document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bn-BD',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
 }
@@ -8611,6 +8703,430 @@ showPage = function(id) {
   }
   _origShowPage(id);
 };
+
+
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  NEW FEATURES: Scoring, Reset, Fee Summary, Profile Rankings    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+// ---- FIX 9+10: শিক্ষার্থী স্কোর = উপস্থিতি (৪০%) + ফলাফল (৬০%) ----
+function calcStudentScore(sid) {
+  var s = data.students.find(function(x){ return x.id===sid; });
+  if(!s) return 0;
+  // উপস্থিতি স্কোর (সর্বোচ্চ ৪০)
+  var present=0, absent=0;
+  Object.entries(data.attendance||{}).forEach(function([k,v]){
+    if(!k.startsWith((s.cls||'')+'_')) return;
+    if(v[sid]==='উপস্থিত') present++;
+    else if(v[sid]==='অনুপস্থিত') absent++;
+  });
+  var attScore = (present+absent)>0 ? (present/(present+absent))*40 : 0;
+  // ফলাফল স্কোর (সর্বোচ্চ ৬০ — সর্বশেষ পরীক্ষার ভিত্তিতে)
+  var results = (data.results||[]).filter(function(r){ return r.studentId===sid; });
+  var resultScore = 0;
+  if(results.length>0) {
+    var latest = results.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); })[0];
+    var total = Number(latest.total||0);
+    var maxPossible = 500; // approx
+    resultScore = Math.min(60, (total/maxPossible)*60);
+  }
+  return Math.round(attScore + resultScore);
+}
+
+function calcStudentMonthlyScore(sid, yearMonth) {
+  // মাসিক স্কোর = উপস্থিতি তথ্য ঐ মাসে
+  var s = data.students.find(function(x){ return x.id===sid; });
+  if(!s) return 0;
+  var present=0, absent=0;
+  Object.keys(data.attendance||{}).forEach(function(k){
+    if(!k.startsWith((s.cls||'')+'_'+yearMonth)) return;
+    var v = data.attendance[k];
+    if(v[sid]==='উপস্থিত') present++;
+    else if(v[sid]==='অনুপস্থিত') absent++;
+  });
+  var attScore = (present+absent)>0 ? (present/(present+absent))*100 : 0;
+  return { score: Math.round(attScore), present: present, absent: absent };
+}
+
+function getStudentClassRank(sid, cls) {
+  var classmates = (data.students||[]).filter(function(s){ return (s.cls||'').trim()===(cls||'').trim() && !s.archived; });
+  var scored = classmates.map(function(s){ return { id:s.id, score:calcStudentScore(s.id) }; });
+  scored.sort(function(a,b){ return b.score-a.score; });
+  var rank = scored.findIndex(function(x){ return x.id===sid; });
+  return { rank: rank+1, total: classmates.length };
+}
+
+function getStudentOverallRank(sid) {
+  var all = (data.students||[]).filter(function(s){ return !s.archived; });
+  var scored = all.map(function(s){ return { id:s.id, score:calcStudentScore(s.id) }; });
+  scored.sort(function(a,b){ return b.score-a.score; });
+  var rank = scored.findIndex(function(x){ return x.id===sid; });
+  return { rank: rank+1, total: all.length };
+}
+
+function renderTopStudents() {
+  var el = document.getElementById('topStudents');
+  if(!el) return;
+  var active = (data.students||[]).filter(function(s){ return !s.archived; });
+  if(active.length===0) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">কোনো শিক্ষার্থী নেই।</p>'; return; }
+  var scored = active.map(function(s){ return { s:s, score:calcStudentScore(s.id) }; });
+  scored.sort(function(a,b){ return b.score-a.score; });
+  var medals = ['🥇','🥈','🥉'];
+  el.innerHTML = scored.slice(0,5).map(function(item, i){
+    var s=item.s, score=item.score;
+    var resultCount = (data.results||[]).filter(function(r){return r.studentId===s.id;}).length;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="font-size:'+(i<3?'18':'13')+'px;width:22px;text-align:center;font-weight:700;color:'+(i===0?'#c9a227':i===1?'#aaa':i===2?'#cd7f32':'var(--text-muted)')+';">'+(medals[i]||i+1)+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+s.name+'</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);">'+s.cls+' · '+resultCount+' পরীক্ষা</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+        +'<div style="font-weight:700;color:var(--primary);font-size:14px;">'+score+'</div>'
+        +'<div style="font-size:9px;color:var(--text-muted);">স্কোর</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+// ---- FIX 9: শিক্ষক স্কোর = উপস্থিতি (৩০%) + হাজিরা নেওয়া (৩০%) + মন্তব্য (২০%) + সময়মত বেতন গ্রহণ (২০%) ----
+function calcTeacherScore(tid) {
+  var t = data.teachers.find(function(x){ return x.id===tid; });
+  if(!t) return 0;
+  // উপস্থিতি
+  var tPresent=0, tAbsent=0;
+  Object.values(data.attendance||{}).forEach(function(v){
+    if(v['t_'+tid]==='উপস্থিত') tPresent++;
+    else if(v['t_'+tid]==='অনুপস্থিত') tAbsent++;
+  });
+  var attScore = (tPresent+tAbsent)>0 ? (tPresent/(tPresent+tAbsent))*30 : 0;
+  // হাজিরা নেওয়া (কতদিন এই শিক্ষক _takenBy হিসেবে আছেন)
+  var takenCount = Object.values(data.attendance||{}).filter(function(v){ return v._takenBy===tid; }).length;
+  var classCount = Math.max(1, (data.settings.classes||[]).length);
+  var takenScore = Math.min(30, (takenCount/classCount)*10);
+  // মন্তব্য
+  var remarkCount = (data.studentRemarks||[]).filter(function(r){ return r.teacherId===tid; }).length;
+  var remarkScore = Math.min(20, remarkCount*2);
+  // মোট
+  return Math.round(attScore + takenScore + remarkScore);
+}
+
+function renderTopTeachers() {
+  var el = document.getElementById('topTeachers');
+  if(!el) return;
+  var teachers = (data.teachers||[]).filter(function(t){ return !t.archived; });
+  if(teachers.length===0) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">কোনো শিক্ষক নেই।</p>'; return; }
+  var scored = teachers.map(function(t){ return { t:t, score:calcTeacherScore(t.id) }; });
+  scored.sort(function(a,b){ return b.score-a.score; });
+  var medals = ['🥇','🥈','🥉'];
+  el.innerHTML = scored.slice(0,5).map(function(item, i){
+    var t=item.t, score=item.score;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="font-size:'+(i<3?'18':'13')+'px;width:22px;text-align:center;font-weight:700;color:'+(i===0?'#c9a227':i===1?'#aaa':i===2?'#cd7f32':'var(--text-muted)')+';">'+(medals[i]||i+1)+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.name+'</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);">'+(t.type||'শিক্ষক')+(t.assignedClass?' · '+t.assignedClass:'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+        +'<div style="font-weight:700;color:#7c3aed;font-size:14px;">'+score+'</div>'
+        +'<div style="font-size:9px;color:var(--text-muted);">স্কোর</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+// ============================================================
+// FIX 7: Fee Summary — ফি ধরন অনুযায়ী কতজন দিয়েছে
+// ============================================================
+function renderFeeTypeSummary() {
+  var today = new Date().toISOString().split('T')[0];
+  var monthStr = today.slice(0,7);
+  var activeStudents = (data.students||[]).filter(function(s){ return !s.archived; });
+  var payments = data.feePayments||[];
+
+  // ফি ধরন গুলো খোঁজো
+  var feeTypes = {};
+  payments.forEach(function(p){
+    if(p.personType !== 'student') return;
+    var key = (p.feeType||'অন্যান্য')+'_'+(p.month||'')+'_'+(p.year||'');
+    if(!feeTypes[key]) feeTypes[key] = { type:p.feeType||'অন্যান্য', month:p.month||'', year:p.year||'', paidIds:new Set() };
+    feeTypes[key].paidIds.add(p.personId);
+  });
+
+  // এ মাসের বেতন বাকি কতজন
+  var monthlyPaidIds = new Set(payments.filter(function(p){
+    return p.personType==='student' && p.feeType==='মাসিক বেতন' && (p.date||'').slice(0,7)===monthStr;
+  }).map(function(p){ return p.personId; }));
+
+  var monthlyPaid = monthlyPaidIds.size;
+  var monthlyNotPaid = activeStudents.length - monthlyPaid;
+
+  var el = document.getElementById('feeSummaryCards');
+  if(!el) return;
+
+  // Summary cards + fee type breakdown
+  var totalCollected = payments.filter(function(f){return f.personType==='student';}).reduce(function(a,b){return a+Number(b.amount);},0);
+  var totalDue = activeStudents.reduce(function(sum,s){return sum + calcStudentDue(s.id);},0);
+  var todayStr = today;
+  var todayAmt = payments.filter(function(f){return f.date===todayStr&&f.personType==='student';}).reduce(function(a,b){return a+Number(b.amount);},0);
+
+  var html = '';
+  // Top 4 summary cards
+  html += [
+    {icon:'👨‍🎓', label:'মোট শিক্ষার্থী', val: activeStudents.length+'জন', color:'var(--primary)'},
+    {icon:'✅', label:'মোট আদায়', val:'৳'+totalCollected.toLocaleString('bn-BD'), color:'#2d7a4f'},
+    {icon:'⏳', label:'বকেয়া', val:'৳'+totalDue.toLocaleString('bn-BD'), color:'#c0392b'},
+    {icon:'📅', label:'আজকের আদায়', val:'৳'+todayAmt.toLocaleString('bn-BD'), color:'#c9a227'},
+  ].map(function(c){ 
+    return '<div style="background:'+c.color+'15;border:1.5px solid '+c.color+'30;border-radius:var(--radius-sm);padding:14px;text-align:center;"><div style="font-size:24px;">'+c.icon+'</div><div style="font-size:11px;color:var(--text-muted);margin:2px 0;">'+c.label+'</div><div style="font-size:18px;font-weight:800;color:'+c.color+';">'+c.val+'</div></div>';
+  }).join('');
+
+  el.innerHTML = html;
+
+  // Fee type breakdown table
+  var breakdownEl = document.getElementById('feeTypeBreakdown');
+  if(!breakdownEl) return;
+
+  // এ মাসের বেতন
+  var monthName = new Date().toLocaleDateString('bn-BD',{month:'long', year:'numeric'});
+  var breakHtml = '<div style="margin-bottom:16px;">';
+  breakHtml += '<div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px;">📊 '+monthName+' — ফি আদায়ের অবস্থা</div>';
+
+  // Monthly fee status
+  breakHtml += '<div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:12px;">';
+  breakHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+  breakHtml += '<span style="font-weight:600;font-size:13px;">📋 মাসিক বেতন</span>';
+  breakHtml += '<div style="display:flex;gap:8px;font-size:12px;">'
+    +'<span style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:10px;font-weight:700;">✅ দিয়েছে: '+monthlyPaid+' জন</span>'
+    +'<span style="background:#f8d7da;color:#721c24;padding:3px 10px;border-radius:10px;font-weight:700;">⏳ বাকি: '+monthlyNotPaid+' জন</span>'
+    +'</div></div>';
+  // Progress bar
+  var pct = activeStudents.length > 0 ? Math.round(monthlyPaid/activeStudents.length*100) : 0;
+  breakHtml += '<div style="background:#ddd;border-radius:4px;height:8px;"><div style="width:'+pct+'%;background:var(--primary);height:100%;border-radius:4px;transition:.4s;"></div></div>';
+  // কারা দেয়নি
+  var notPaidList = activeStudents.filter(function(s){ return !monthlyPaidIds.has(s.id); });
+  if(notPaidList.length > 0) {
+    breakHtml += '<details style="margin-top:8px;"><summary style="font-size:12px;color:var(--danger);cursor:pointer;font-weight:600;">▸ বাকি '+notPaidList.length+' জনের তালিকা</summary>';
+    breakHtml += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">';
+    breakHtml += notPaidList.slice(0,30).map(function(s){
+      return '<span style="background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:10px;font-size:11px;">'+s.name+' ('+s.cls+')</span>';
+    }).join('');
+    if(notPaidList.length>30) breakHtml += '<span style="font-size:11px;color:var(--text-muted);">আরো '+(notPaidList.length-30)+' জন...</span>';
+    breakHtml += '</div></details>';
+  }
+  breakHtml += '</div>';
+
+  // Other fee types this month from payments
+  var otherFeeTypes = {};
+  payments.filter(function(p){ return p.personType==='student' && (p.date||'').slice(0,7)===monthStr && p.feeType !== 'মাসিক বেতন'; }).forEach(function(p){
+    var ft = p.feeType||'অন্যান্য';
+    if(!otherFeeTypes[ft]) otherFeeTypes[ft] = new Set();
+    otherFeeTypes[ft].add(p.personId);
+  });
+
+  Object.entries(otherFeeTypes).forEach(function([ft, paidSet]){
+    var paidN = paidSet.size;
+    breakHtml += '<div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:8px;">';
+    breakHtml += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+    breakHtml += '<span style="font-weight:600;font-size:13px;">📌 '+ft+'</span>';
+    breakHtml += '<div style="display:flex;gap:8px;font-size:12px;">'
+      +'<span style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:10px;font-weight:700;">✅ '+paidN+' জন</span>'
+      +'</div></div></div>';
+  });
+
+  breakHtml += '</div>';
+  breakdownEl.innerHTML = breakHtml;
+}
+
+// ============================================================
+// FIX 1: Data Reset Modal — selective reset with steps
+// ============================================================
+function openSelectiveReset() {
+  var modal = document.getElementById('selectiveResetModal');
+  if(modal) { modal.classList.add('open'); return; }
+  // Create modal dynamically
+  var m = document.createElement('div');
+  m.id = 'selectiveResetModal';
+  m.className = 'modal-overlay open';
+  m.innerHTML = `
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <span class="modal-title">🗑️ নির্বাচিত ডেটা রিসেট</span>
+        <button class="modal-close" onclick="closeModal('selectiveResetModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;">
+          ⚠️ রিসেট করা ডেটা <b>Firebase থেকেও মুছে যাবে</b> এবং পুনরুদ্ধার করা যাবে না।
+        </div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;">কোন ডেটা রিসেট করতে চান?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          ${[
+            {id:'rst_att',label:'✅ উপস্থিতি (হাজিরা)',desc:'সব হাজিরা রেকর্ড',key:'attendance'},
+            {id:'rst_leave',label:'📝 ছুটির আবেদন',desc:'সব leave রেকর্ড',key:'leaves'},
+            {id:'rst_notice',label:'📢 বিজ্ঞপ্তি',desc:'সব বিজ্ঞপ্তি',key:'notices'},
+            {id:'rst_results',label:'📋 পরীক্ষার ফলাফল',desc:'সব result রেকর্ড',key:'results'},
+            {id:'rst_fee',label:'💳 ফি পেমেন্ট',desc:'সব fee payment',key:'feePayments'},
+            {id:'rst_finance',label:'💰 আয়-ব্যয়',desc:'সব financial entry',key:'finance'},
+            {id:'rst_syllabus',label:'📚 সিলেবাস',desc:'সব সিলেবাস',key:'syllabus'},
+            {id:'rst_remarks',label:'💬 মন্তব্য',desc:'সব student remarks',key:'studentRemarks'},
+          ].map(function(item){
+            return '<label style="display:flex;gap:10px;align-items:flex-start;background:#f8f9fa;border:1.5px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;" id="rst-lbl-'+item.id+'">'
+              +'<input type="checkbox" id="'+item.id+'" data-key="'+item.key+'" onchange="rstHighlight(this)" style="margin-top:2px;width:15px;height:15px;accent-color:var(--danger);">'
+              +'<div><div style="font-size:13px;font-weight:600;">'+item.label+'</div><div style="font-size:11px;color:var(--text-muted);">'+item.desc+'</div></div>'
+              +'</label>';
+          }).join('')}
+        </div>
+        <!-- Step 2: confirm word -->
+        <div id="rstStep2" style="display:none;margin-top:12px;">
+          <div style="background:#f8d7da;border:1.5px solid #f5c6cb;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;">
+            নিশ্চিত করতে নিচে <b>RESET</b> লিখুন:
+          </div>
+          <input id="rstConfirmWord" type="text" placeholder="RESET লিখুন..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:monospace;font-size:14px;letter-spacing:2px;">
+        </div>
+        <!-- Step 3: PIN -->
+        <div id="rstStep3" style="display:none;margin-top:10px;">
+          <input id="rstPinInput" type="password" placeholder="Admin PIN দিন..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-family:monospace;font-size:14px;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('selectiveResetModal')">বাতিল</button>
+        <button class="btn btn-primary" onclick="rstNext()" id="rstNextBtn" disabled>পরবর্তী →</button>
+        <button class="btn btn-danger" onclick="rstExecute()" id="rstExecBtn" style="display:none;">⚠️ রিসেট করুন</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+}
+
+function rstHighlight(cb) {
+  var lbl = document.getElementById('rst-lbl-'+cb.id);
+  if(lbl) {
+    lbl.style.borderColor = cb.checked ? 'var(--danger)' : 'var(--border)';
+    lbl.style.background = cb.checked ? '#fff5f5' : '#f8f9fa';
+  }
+  // Enable next button if at least one selected
+  var anyChecked = document.querySelectorAll('#selectiveResetModal input[type=checkbox]:checked').length > 0;
+  var btn = document.getElementById('rstNextBtn');
+  if(btn) btn.disabled = !anyChecked;
+}
+
+var _rstStep = 1;
+function rstNext() {
+  if(_rstStep === 1) {
+    _rstStep = 2;
+    document.getElementById('rstStep2').style.display = '';
+    document.getElementById('rstNextBtn').textContent = 'নিশ্চিত করুন →';
+  } else if(_rstStep === 2) {
+    var word = (document.getElementById('rstConfirmWord').value||'').trim();
+    if(word !== 'RESET') { toast('RESET লিখতে হবে।','error'); return; }
+    _rstStep = 3;
+    document.getElementById('rstStep3').style.display = '';
+    document.getElementById('rstNextBtn').style.display = 'none';
+    document.getElementById('rstExecBtn').style.display = '';
+  }
+}
+
+function rstExecute() {
+  var pin = (document.getElementById('rstPinInput').value||'').trim();
+  if(pin !== String(data.settings.adminPin||'1234')) { toast('ভুল Admin PIN।','error'); return; }
+  var checkboxes = document.querySelectorAll('#selectiveResetModal input[type=checkbox]:checked');
+  var keys = [];
+  checkboxes.forEach(function(cb){ keys.push(cb.dataset.key); });
+  if(keys.length===0) { toast('কোনো ডেটা নির্বাচিত নেই।','error'); return; }
+  keys.forEach(function(k){
+    if(Array.isArray(data[k])) data[k] = [];
+    else if(typeof data[k] === 'object') data[k] = {};
+    save(k);
+  });
+  closeModal('selectiveResetModal');
+  _rstStep = 1;
+  renderDashboard();
+  toast('✅ নির্বাচিত ডেটা রিসেট করা হয়েছে: '+keys.join(', '),'error');
+}
+
+// ============================================================
+// FIX 2: Employee self-profile — always accessible
+// Called when employee logs in
+// ============================================================
+function showMyProfile() {
+  if(!currentUser || !currentUser.id) return;
+  var t = data.teachers.find(function(x){ return x.id===currentUser.id; });
+  if(!t) return;
+  openTeacherProfile(t.id);
+  // Add ranking section to profile
+  setTimeout(function(){
+    addTeacherRankingToProfile(t.id);
+  }, 100);
+}
+
+function addTeacherRankingToProfile(tid) {
+  var score = calcTeacherScore(tid);
+  var teachers = (data.teachers||[]).filter(function(t){ return !t.archived; });
+  var scored = teachers.map(function(t){ return {id:t.id, score:calcTeacherScore(t.id)}; }).sort(function(a,b){return b.score-a.score;});
+  var rank = scored.findIndex(function(x){return x.id===tid;})+1;
+  var total = teachers.length;
+  var thisMonth = new Date().toISOString().slice(0,7);
+  var monthName = new Date().toLocaleDateString('bn-BD',{month:'long', year:'numeric'});
+  var rankHtml = '<div class="card" style="margin-top:12px;">'
+    +'<div class="card-header"><span class="card-title">⭐ পারফরম্যান্স র‍্যাংকিং</span></div>'
+    +'<div class="card-body">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">'
+    +'<div style="background:var(--primary-ultra-light);border-radius:8px;padding:14px;">'
+      +'<div style="font-size:28px;font-weight:800;color:var(--primary);">'+rank+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">সামগ্রিক অবস্থান</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">('+total+' জনের মধ্যে)</div>'
+    +'</div>'
+    +'<div style="background:#f3e8ff;border-radius:8px;padding:14px;">'
+      +'<div style="font-size:28px;font-weight:800;color:#7c3aed;">'+score+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">মোট স্কোর</div>'
+    +'</div>'
+    +'<div style="background:#fff8e1;border-radius:8px;padding:14px;">'
+      +'<div style="font-size:28px;font-weight:800;color:#c9a227;">'+(rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank+'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">'+monthName+'</div>'
+    +'</div>'
+    +'</div>'
+    +'<div style="margin-top:10px;font-size:12px;color:var(--text-muted);text-align:center;">স্কোর নির্ণয়: উপস্থিতি (৩০%) + হাজিরা গ্রহণ (৩০%) + মন্তব্য (২০%) + অন্যান্য (২০%)</div>'
+    +'</div></div>';
+  var body = document.getElementById('teacherProfileBody');
+  if(body) body.innerHTML += rankHtml;
+}
+
+function addStudentRankingToProfile(sid) {
+  var s = data.students.find(function(x){ return x.id===sid; });
+  if(!s) return;
+  var score = calcStudentScore(sid);
+  var clsRank = getStudentClassRank(sid, s.cls);
+  var overallRank = getStudentOverallRank(sid);
+  var monthName = new Date().toLocaleDateString('bn-BD',{month:'long', year:'numeric'});
+  var rankHtml = '<div class="card" style="margin-top:12px;">'
+    +'<div class="card-header"><span class="card-title">🏆 পারফরম্যান্স র‍্যাংকিং</span></div>'
+    +'<div class="card-body">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;text-align:center;">'
+    +'<div style="background:var(--primary-ultra-light);border-radius:8px;padding:12px;">'
+      +'<div style="font-size:24px;font-weight:800;color:var(--primary);">'+clsRank.rank+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">শ্রেণিতে অবস্থান</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">('+clsRank.total+' জনের মধ্যে)</div>'
+    +'</div>'
+    +'<div style="background:#e0f2fe;border-radius:8px;padding:12px;">'
+      +'<div style="font-size:24px;font-weight:800;color:#0369a1;">'+overallRank.rank+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">সামগ্রিক অবস্থান</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">('+overallRank.total+' জনের মধ্যে)</div>'
+    +'</div>'
+    +'<div style="background:#f3e8ff;border-radius:8px;padding:12px;">'
+      +'<div style="font-size:24px;font-weight:800;color:#7c3aed;">'+score+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">পারফরম্যান্স স্কোর</div>'
+    +'</div>'
+    +'<div style="background:#fff8e1;border-radius:8px;padding:12px;">'
+      +'<div style="font-size:24px;font-weight:800;color:#c9a227;">'+(clsRank.rank===1?'🥇':clsRank.rank===2?'🥈':clsRank.rank===3?'🥉':clsRank.rank+'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">'+monthName+'</div>'
+    +'</div>'
+    +'</div>'
+    +'<div style="margin-top:10px;font-size:12px;color:var(--text-muted);text-align:center;">স্কোর = উপস্থিতি (৪০%) + পরীক্ষার ফলাফল (৬০%) | পেরেন্ট পোর্টালেও দেখা যাবে</div>'
+    +'</div></div>';
+  var body = document.getElementById('studentProfileBody');
+  if(body) body.innerHTML += rankHtml;
+}
 
 
 
@@ -8667,6 +9183,10 @@ var _fns = {
   saveLeave, deleteLeave, printLeave, printLeaveApp,
   addRoutine, addSyllabus, deleteSyllabus,
   saveSettings, addClass, removeClass, clearAllData, exportData,
+  openSelectiveReset, rstHighlight, rstNext, rstExecute,
+  renderTopStudents, renderTopTeachers, calcStudentScore, calcTeacherScore,
+  getStudentClassRank, getStudentOverallRank, addStudentRankingToProfile, addTeacherRankingToProfile,
+  renderFeeTypeSummary, showMyProfile, unlockAttendance,
   addHoliday, removeHoliday, renderHolidayList,
   printStudentList, printResultSheet, printFinanceReport,
   renderPendingPayments, confirmOnlinePayment, rejectOnlinePayment, copyParentLink,
