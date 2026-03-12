@@ -9398,13 +9398,17 @@ function renderWidgets() {
 
     var html = def.render();
     if(_dashEditMode) {
-      var dBtn='<button class="wg-del-btn" onclick="event.stopPropagation();wgRemove(\''+wid+'\')">✕ বাদ</button>';
+      var dBtn='<button class="wg-del-btn" data-delwid="'+wid+'">✕ বাদ</button>';
       var hdrEnd=html.indexOf('</div>');
       if(hdrEnd>-1) html=html.slice(0,hdrEnd)+dBtn+html.slice(hdrEnd);
     }
     slot.insertAdjacentHTML('beforeend', html);
 
     if(_dashEditMode) {
+      // Delete button click
+      var delBtn = slot.querySelector('.wg-del-btn');
+      if(delBtn) delBtn.addEventListener('click', function(e){ e.stopPropagation(); wgRemove(wid); });
+
       // Drag by header
       slot.addEventListener('mousedown', function(e){
         if(!e.target.closest('.card-header') || e.target.closest('.wg-del-btn')) return;
@@ -9574,7 +9578,7 @@ function openWidgetPicker() {
   var grid = Object.keys(WG_DEFS).map(function(wid) {
     var def = WG_DEFS[wid];
     var used = layout.some(function(x){ return x.wid===wid; });
-    return '<div class="wg-picker-item'+(used?' wg-used':'')+'" onclick="'+(used?'':' wgAdd(\''+wid+'\')')+'">'
+    return '<div class="wg-picker-item'+(used?' wg-used':'')+'" data-wid="'+wid+'" data-used="'+(used?'1':'0')+'">'
       +'<div class="wg-picker-icon">'+def.icon+'</div>'
       +'<div class="wg-picker-label">'+def.label+'</div>'
       +(used?'<div class="wg-picker-used-tag">✓ যোগ আছে</div>':'')
@@ -9586,9 +9590,15 @@ function openWidgetPicker() {
     +'</div>'
     +'<div class="modal-body">'
       +'<p style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">যোগ করতে চান এমন উইজেটে ক্লিক করুন।</p>'
-      +'<div class="wg-picker-grid">'+grid+'</div>'
+      +'<div class="wg-picker-grid" id="wgPickerGrid">'+grid+'</div>'
     +'</div></div>';
   document.body.appendChild(m);
+  // Event delegation — onclick এ quote problem এড়ানো
+  document.getElementById('wgPickerGrid').addEventListener('click', function(e) {
+    var item = e.target.closest('.wg-picker-item');
+    if(!item || item.dataset.used==='1') return;
+    wgAdd(item.dataset.wid);
+  });
 }
 
 // ═══════════════════════════════════════════
