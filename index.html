@@ -9611,67 +9611,72 @@ function openWidgetPicker() {
     _dragWid = item.dataset.wid;
     var def  = WG_DEFS[_dragWid];
 
-    // Create ghost
+    // Ghost element
     _ghost = document.createElement('div');
-    _ghost.id = 'wgDragGhost';
-    _ghost.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;'
-      +'background:linear-gradient(135deg,var(--primary),var(--primary-light));'
-      +'color:#fff;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700;'
-      +'box-shadow:0 8px 32px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;'
-      +'opacity:.92;transform:rotate(1.5deg);';
+    _ghost.style.cssText = 'position:fixed;z-index:999999;pointer-events:none;'
+      +'background:linear-gradient(135deg,#1a4a2e,#2d7a4f);'
+      +'color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;'
+      +'box-shadow:0 8px 32px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;'
+      +'opacity:.95;transform:rotate(2deg);white-space:nowrap;';
     _ghost.innerHTML = def.icon + ' ' + def.label;
     document.body.appendChild(_ghost);
 
+    // Modal কে drag সময় transparent করো — behind রেখো কিন্তু block না
+    m.style.pointerEvents = 'none';
+
     function moveGhost(ev) {
       var p = ev.touches ? ev.touches[0] : ev;
-      _ghost.style.left = (p.clientX - 60) + 'px';
-      _ghost.style.top  = (p.clientY - 20) + 'px';
+      _ghost.style.left = (p.clientX - 70) + 'px';
+      _ghost.style.top  = (p.clientY - 25) + 'px';
 
-      // Highlight dashboard if hovering over it
+      // Dashboard highlight
       var cont = document.getElementById('dashWidgetContainer');
       if(cont) {
         var r = cont.getBoundingClientRect();
         var over = p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom;
-        cont.style.outline = over ? '3px dashed var(--primary)' : '';
+        cont.style.outline = over ? '3px dashed #2d7a4f' : '';
+        cont.style.background = over ? 'rgba(45,122,79,.04)' : '';
       }
     }
 
     function dropGhost(ev) {
       var p = ev.changedTouches ? ev.changedTouches[0] : ev;
+
+      // Cleanup
       if(_ghost) { _ghost.remove(); _ghost = null; }
+      m.style.pointerEvents = '';
       document.removeEventListener('mousemove', moveGhost);
       document.removeEventListener('mouseup',   dropGhost);
       document.removeEventListener('touchmove', moveGhost);
       document.removeEventListener('touchend',  dropGhost);
 
       var cont = document.getElementById('dashWidgetContainer');
-      if(cont) cont.style.outline = '';
+      if(cont) { cont.style.outline=''; cont.style.background=''; }
 
-      if(!_dragWid) return;
-      var cont = document.getElementById('dashWidgetContainer');
-      if(!cont) { wgAdd(_dragWid); return; }
+      if(!_dragWid || !cont) { _dragWid=null; return; }
 
-      var r = cont.getBoundingClientRect();
-      // Check if dropped inside dashboard
-      if(p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom) {
-        // Place at exact drop position (relative to container, snapped)
-        var scrollTop = cont.parentElement ? cont.parentElement.scrollTop : 0;
-        var rawX = p.clientX - r.left;
-        var rawY = p.clientY - r.top + (window.scrollY||0);
-        var sx = snap(Math.max(0, rawX - WG_COL_W/2));
-        var sy = snap(Math.max(0, rawY - 20));
+      // Drop position — viewport থেকে container relative + scroll offset
+      var r   = cont.getBoundingClientRect();
+      var sx  = p.clientX, sy = p.clientY;
 
-        var lay = wgLoadLayout();
-        if(lay.find(function(x){ return x.wid===_dragWid; })) { _dragWid=null; return; }
-        lay.push({ wid:_dragWid, x:sx, y:sy, w:WG_COL_W, h:WG_COL_H });
-        wgSaveLayout(lay);
+      // Dashboard এর মধ্যে drop হয়েছে কিনা
+      var inside = sx>=r.left && sx<=r.right && sy>=r.top && sy<=r.bottom;
+      if(!inside) { _dragWid=null; return; }
 
-        var modal = document.getElementById('wgPickerModal');
-        if(modal) modal.remove();
-        renderWidgets();
-        var def = WG_DEFS[_dragWid];
-        toast((def ? def.icon+' "'+def.label+'"' : 'উইজেট')+' যোগ হয়েছে ✅');
-      }
+      // Container এর ভেতরে relative position (scroll সহ)
+      var relX = snap(Math.max(0, sx - r.left - 20));
+      var relY = snap(Math.max(0, sy - r.top  + (cont.parentElement ? cont.parentElement.scrollTop : 0)));
+
+      var lay = wgLoadLayout();
+      if(lay.find(function(x){ return x.wid===_dragWid; })) { _dragWid=null; return; }
+      lay.push({ wid:_dragWid, x:relX, y:relY, w:WG_COL_W, h:WG_COL_H });
+      wgSaveLayout(lay);
+
+      var modal = document.getElementById('wgPickerModal');
+      if(modal) modal.remove();
+      renderWidgets();
+      var def2 = WG_DEFS[_dragWid];
+      toast((def2 ? def2.icon+' "'+def2.label+'"' : 'উইজেট')+' যোগ হয়েছে ✅');
       _dragWid = null;
     }
 
