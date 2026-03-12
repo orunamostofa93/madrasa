@@ -7,7 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase Compat SDK -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/web-animations/2.3.2/web-animations.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/muuri/0.9.5/muuri.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -360,16 +361,53 @@
   .cls-chip .chip-del:hover { color:#900; }
   .cls-mismatch-warn { background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:12px 14px; margin-top:8px; font-size:12px; }
 
+
   /* ===== WIDGET SYSTEM ===== */
   #dashWidgetToolbar { display:none; }
   #dashWidgetToolbar.active { display:flex !important; }
-  #dashWidgetContainer { display:flex; flex-direction:column; gap:14px; }
   #dashEditBtn { display:flex; }
 
-  .wg-slot { position:relative; border-radius:12px; }
-  .wg-slot > .card { overflow:hidden; min-width:200px; min-height:60px; }
+  /* Muuri free grid container */
+  #dashWidgetContainer {
+    position:relative;
+    width:100%;
+  }
 
-  /* Edit mode: card-header becomes drag handle */
+  /* Each widget — Muuri positions these absolutely */
+  .wg-slot {
+    position:absolute;
+    width:calc(33.333% - 10px); /* default: ~3 per row */
+    box-sizing:border-box;
+    border-radius:12px;
+    z-index:1;
+  }
+  /* width presets */
+  .wg-slot.wg-w1 { width:calc(25% - 11px); }
+  .wg-slot.wg-w2 { width:calc(33.333% - 10px); }
+  .wg-slot.wg-w3 { width:calc(50% - 9px); }
+  .wg-slot.wg-w4 { width:calc(66.666% - 7px); }
+  .wg-slot.wg-w5 { width:calc(75% - 6px); }
+  .wg-slot.wg-w6 { width:calc(100%); }
+
+  @media(max-width:900px){
+    .wg-slot,.wg-slot.wg-w1,.wg-slot.wg-w2,.wg-slot.wg-w3,
+    .wg-slot.wg-w4,.wg-slot.wg-w5 { width:calc(50% - 7px); }
+    .wg-slot.wg-w6 { width:100%; }
+  }
+  @media(max-width:600px){
+    .wg-slot,.wg-slot.wg-w1,.wg-slot.wg-w2,.wg-slot.wg-w3,
+    .wg-slot.wg-w4,.wg-slot.wg-w5,.wg-slot.wg-w6 { width:100%; }
+  }
+
+  .wg-slot > .card { overflow:hidden; min-height:80px; height:100%; box-sizing:border-box; }
+
+  /* Muuri drag states */
+  .wg-slot.muuri-item-dragging { z-index:100 !important; opacity:.9; transform:rotate(.5deg) scale(1.03); box-shadow:0 16px 48px rgba(0,0,0,.28) !important; }
+  .wg-slot.muuri-item-releasing { z-index:50; }
+  .wg-slot.muuri-item-hidden { z-index:0; opacity:0; }
+  .muuri-item-placeholder { border:3px dashed var(--primary); border-radius:12px; background:var(--primary-ultra-light); opacity:.5; }
+
+  /* Edit mode */
   .dash-edit-mode .wg-slot > .card {
     border:2px solid var(--primary) !important;
     box-shadow:0 0 0 3px var(--primary-ultra-light);
@@ -378,46 +416,38 @@
     cursor:grab !important;
     background:linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
     border-radius:10px 10px 0 0;
-    user-select:none;
-  }
-  .dash-edit-mode .wg-slot .card-header * {
-    color:#fff !important;
-    cursor:grab !important;
+    user-select:none; gap:6px;
   }
   .dash-edit-mode .wg-slot .card-header:active { cursor:grabbing !important; }
+  .dash-edit-mode .wg-slot .card-header::before {
+    content:'⠿⠿'; font-size:14px; color:rgba(255,255,255,.75); flex-shrink:0;
+  }
+  .dash-edit-mode .wg-slot .card-title { color:#fff !important; }
+  .dash-edit-mode .wg-slot .card-header span:not(.card-title) { color:rgba(255,255,255,.8) !important; }
 
-  /* Delete button inside card-header */
+  /* Width cycle button */
+  .wg-width-btn {
+    background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4);
+    color:#fff !important; border-radius:5px; padding:2px 7px;
+    font-size:10px; cursor:pointer !important; font-family:inherit;
+    font-weight:700; white-space:nowrap; flex-shrink:0;
+  }
+  .wg-width-btn:active { background:rgba(255,255,255,.45); }
   .wg-del-btn {
     background:rgba(220,40,40,.5); border:1px solid rgba(255,255,255,.4);
-    color:#fff !important; border-radius:6px; padding:3px 10px;
-    font-size:12px; cursor:pointer !important; font-family:inherit;
-    font-weight:700; white-space:nowrap; margin-left:auto; flex-shrink:0;
+    color:#fff !important; border-radius:5px; padding:2px 7px;
+    font-size:10px; cursor:pointer !important; font-family:inherit;
+    font-weight:700; white-space:nowrap; flex-shrink:0;
   }
   .wg-del-btn:active { background:rgba(200,20,20,.9); }
 
-  /* Hint label in edit mode */
-  .dash-edit-mode .wg-slot .card-header::before {
-    content:'⠿ ';
-    font-size:16px; opacity:.7; margin-right:4px;
-  }
-
   /* Resize mode */
-  .wg-resize-mode .wg-slot > .card {
-    overflow:auto; resize:both;
-    border:2px dashed var(--primary) !important;
-    box-shadow:0 0 0 3px var(--primary-ultra-light);
-  }
-
-  /* Sortable states */
-  .wg-ghost { opacity:.25; background:var(--primary-ultra-light) !important; border-radius:12px; }
-  .wg-chosen { box-shadow:0 8px 32px rgba(0,0,0,.22) !important; }
-  .wg-dragging { opacity:.9; transform:rotate(.8deg); box-shadow:0 14px 44px rgba(0,0,0,.28) !important; }
+  .wg-resize-mode .wg-slot > .card { overflow:auto; resize:both; border:2px dashed var(--primary) !important; }
 
   /* Widget picker */
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
   .wg-picker-item { border:2px solid var(--border); border-radius:10px; padding:12px 8px; text-align:center; cursor:pointer; transition:.15s; background:#fff; }
-  .wg-picker-item:active:not(.wg-used),
-  .wg-picker-item:hover:not(.wg-used) { border-color:var(--primary); background:var(--primary-ultra-light); transform:translateY(-2px); }
+  .wg-picker-item:active:not(.wg-used),.wg-picker-item:hover:not(.wg-used) { border-color:var(--primary); background:var(--primary-ultra-light); transform:translateY(-2px); }
   .wg-picker-item.wg-used { opacity:.45; cursor:default; border-style:dashed; }
   .wg-picker-icon { font-size:26px; margin-bottom:5px; }
   .wg-picker-label { font-size:11px; font-weight:700; color:var(--text); line-height:1.3; }
@@ -9234,104 +9264,125 @@ var WG_DEFS = {
   },
 };
 
+// Layout stored as [{wid:'att_donut', cols:1}, ...]
+var WG_W_LABELS = {'wg-w1':'25%','wg-w2':'33%','wg-w3':'50%','wg-w4':'67%','wg-w5':'75%','wg-w6':'100%'};
+var WG_W_ORDER  = ['wg-w1','wg-w2','wg-w3','wg-w4','wg-w5','wg-w6'];
+
 var WG_DEFAULT = [
-  'att_donut','fee_bar','class_bar',
-  'birthday','pending_leave','today_summary',
-  'quick_actions','notices',
-  'top_students','top_teachers',
-  'pending_payments','absent_list'
+  {wid:'att_donut',w:'wg-w3'},{wid:'fee_bar',w:'wg-w3'},
+  {wid:'class_bar',w:'wg-w3'},{wid:'birthday',w:'wg-w3'},
+  {wid:'pending_leave',w:'wg-w3'},{wid:'today_summary',w:'wg-w3'},
+  {wid:'quick_actions',w:'wg-w6'},{wid:'notices',w:'wg-w3'},
+  {wid:'top_students',w:'wg-w3'},{wid:'top_teachers',w:'wg-w3'},
+  {wid:'pending_payments',w:'wg-w6'},{wid:'absent_list',w:'wg-w6'}
 ];
 
 function wgLoadLayout() {
-  try { var s=localStorage.getItem('mms_wg'); if(s) return JSON.parse(s); } catch(e){}
-  return WG_DEFAULT.slice();
+  try { var s=localStorage.getItem('mms_wg4'); if(s) return JSON.parse(s); } catch(e){}
+  return WG_DEFAULT.map(function(x){ return {wid:x.wid,w:x.w}; });
 }
 function wgSaveLayout(layout) {
-  try { localStorage.setItem('mms_wg', JSON.stringify(layout)); } catch(e){}
+  try { localStorage.setItem('mms_wg4', JSON.stringify(layout)); } catch(e){}
 }
 
-// ---- Render all widgets ----
-var _sortable = null;
+var _muuri = null;
 
 function renderWidgets() {
   var container = document.getElementById('dashWidgetContainer');
   if(!container) return;
-
-  if(_sortable) { try { _sortable.destroy(); } catch(e){} _sortable = null; }
-
+  if(_muuri) { try{_muuri.destroy();}catch(e){} _muuri=null; }
   container.innerHTML = '';
   if(_dashEditMode) container.classList.add('dash-edit-mode');
   else container.classList.remove('dash-edit-mode');
+  if(_wgResizeMode) container.classList.add('wg-resize-mode');
+  else container.classList.remove('wg-resize-mode');
 
   var layout = wgLoadLayout();
-
-  layout.forEach(function(wid) {
-    var def = WG_DEFS[wid]; if(!def) return;
-    var slot = document.createElement('div');
-    slot.className = 'wg-slot';
-    slot.dataset.wid = wid;
-
-    // Widget HTML
-    var html = def.render();
-
-    // In edit mode: make card-header green + add delete button
+  layout.forEach(function(item) {
+    var wid=item.wid, w=item.w||'wg-w3';
+    var def=WG_DEFS[wid]; if(!def) return;
+    var slot=document.createElement('div');
+    slot.className='wg-slot '+w;
+    slot.dataset.wid=wid; slot.dataset.w=w;
+    var html=def.render();
     if(_dashEditMode) {
-      var delBtn = '<button class="wg-del-btn" onclick="event.stopPropagation();wgRemove(\''+wid+'\')">✕</button>';
-      // Insert delete button just before the first </div> that closes card-header
-      var hdrEnd = html.indexOf('</div>');
-      if(hdrEnd > -1) {
-        html = html.slice(0, hdrEnd) + delBtn + html.slice(hdrEnd);
-      }
+      var wBtn='<button class="wg-width-btn" onclick="event.stopPropagation();wgCycleWidth(\''+wid+'\')">↔ '+WG_W_LABELS[w]+'</button>';
+      var dBtn='<button class="wg-del-btn" onclick="event.stopPropagation();wgRemove(\''+wid+'\')">✕</button>';
+      var hdrEnd=html.indexOf('</div>');
+      if(hdrEnd>-1) html=html.slice(0,hdrEnd)+wBtn+dBtn+html.slice(hdrEnd);
     }
-
-    slot.insertAdjacentHTML('beforeend', html);
-
-    // Make entire card-header the drag handle in edit mode
+    slot.insertAdjacentHTML('beforeend',html);
     container.appendChild(slot);
   });
 
   renderDashboardData();
-  setTimeout(wgRestoreSizes, 50);
-  if(_wgResizeMode) container.classList.add('wg-resize-mode');
+  setTimeout(wgRestoreSizes,80);
 
-  if(_dashEditMode && window.Sortable) {
-    _sortable = new Sortable(container, {
-      animation: 200,
-      handle: '.card-header',
-      ghostClass: 'wg-ghost',
-      chosenClass: 'wg-chosen',
-      dragClass: 'wg-dragging',
-      onEnd: function(evt) {
-        var lay = wgLoadLayout();
-        var moved = lay.splice(evt.oldIndex, 1)[0];
-        lay.splice(evt.newIndex, 0, moved);
-        wgSaveLayout(lay);
-      }
+  if(window.Muuri) {
+    _muuri=new Muuri(container,{
+      items:'.wg-slot',
+      layout:{fillGaps:true},
+      dragEnabled:_dashEditMode,
+      dragHandle:_dashEditMode?'.card-header':null,
+      dragPlaceholder:{
+        enabled:true,
+        createElement:function(){
+          var el=document.createElement('div');
+          el.style.cssText='border:3px dashed #2d7a4f;border-radius:12px;background:rgba(45,122,79,.08);';
+          return el;
+        }
+      },
+      dragStartPredicate:{distance:5,delay:0},
+      dragSortHeuristics:{sortInterval:0}
+    });
+    _muuri.on('dragEnd',function(){
+      var items=_muuri.getItems();
+      var lay=wgLoadLayout();
+      var newLay=items.map(function(itm){
+        var el=itm.getElement();
+        var wid=el.dataset.wid;
+        var ex=lay.find(function(x){return x.wid===wid;});
+        return {wid:wid,w:ex?ex.w:'wg-w3'};
+      });
+      wgSaveLayout(newLay);
     });
   }
 }
 
-function wgRemove(wid) {
-  var lay = wgLoadLayout();
-  var i = lay.indexOf(wid);
-  if(i > -1) lay.splice(i, 1);
+function wgCycleWidth(wid) {
+  var lay=wgLoadLayout();
+  var item=lay.find(function(x){return x.wid===wid;});
+  if(!item) return;
+  var idx=WG_W_ORDER.indexOf(item.w);
+  item.w=WG_W_ORDER[(idx+1)%WG_W_ORDER.length];
   wgSaveLayout(lay);
   renderWidgets();
-  var def = WG_DEFS[wid];
-  toast((def ? def.icon+' "'+def.label+'"' : 'উইজেট')+' বাদ দেওয়া হয়েছে।');
+  toast('↔ প্রস্থ: '+WG_W_LABELS[item.w]);
+}
+
+function wgRemove(wid) {
+  var lay=wgLoadLayout();
+  var i=lay.findIndex(function(x){return x.wid===wid;});
+  if(i>-1) lay.splice(i,1);
+  wgSaveLayout(lay);
+  renderWidgets();
+  var def=WG_DEFS[wid];
+  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' বাদ দেওয়া হয়েছে।');
 }
 
 function wgAdd(wid) {
-  var lay = wgLoadLayout();
-  if(lay.indexOf(wid) > -1) return;
-  lay.push(wid);
+  var lay=wgLoadLayout();
+  if(lay.find(function(x){return x.wid===wid;})) return;
+  lay.push({wid:wid,w:'wg-w3'});
   wgSaveLayout(lay);
-  var m = document.getElementById('wgPickerModal');
+  var m=document.getElementById('wgPickerModal');
   if(m) m.remove();
   renderWidgets();
-  var def = WG_DEFS[wid];
-  toast((def ? def.icon+' "'+def.label+'"' : 'উইজেট')+' যোগ করা হয়েছে ✅');
+  var def=WG_DEFS[wid];
+  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' যোগ করা হয়েছে ✅');
 }
+
+
 
 function dashEditMode(on) {
   _dashEditMode = on;
@@ -9400,7 +9451,8 @@ function wgRestoreSizes() {
 
 function resetWidgetLayout() {
   if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন?')) return;
-  localStorage.removeItem('mms_wg');
+  localStorage.removeItem('mms_wg4');
+  localStorage.removeItem('mms_wg_sizes');
   renderWidgets();
   toast('ডিফল্ট লেআউট পুনরুদ্ধার হয়েছে।');
 }
@@ -9413,7 +9465,7 @@ function openWidgetPicker() {
   m.id = 'wgPickerModal'; m.className = 'modal-overlay open';
   var grid = Object.keys(WG_DEFS).map(function(wid) {
     var def = WG_DEFS[wid];
-    var used = layout.indexOf(wid) > -1;
+    var used = layout.some(function(x){ return x.wid===wid; });
     return '<div class="wg-picker-item'+(used?' wg-used':'')+'" onclick="'+(used?'':' wgAdd(\''+wid+'\')')+'">'
       +'<div class="wg-picker-icon">'+def.icon+'</div>'
       +'<div class="wg-picker-label">'+def.label+'</div>'
@@ -9584,8 +9636,7 @@ var _fns = {
   filterLeaveStatus, updateLeaveApplicantList, fillLeaveApplicant, checkLeaveAdvanceNotice,
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
-  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd, toggleWidgetResize,
-  toggleWidgetResize,
+  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd, toggleWidgetResize, wgCycleWidth,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
