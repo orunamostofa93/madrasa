@@ -367,69 +367,55 @@
   #dashEditBtn { display:flex; }
 
   .wg-slot { position:relative; border-radius:12px; }
-
-  /* Normal: no resize */
   .wg-slot > .card { overflow:hidden; min-width:200px; min-height:60px; }
 
-  /* Resize mode: CSS resize handle */
+  /* Edit mode: card-header becomes drag handle */
+  .dash-edit-mode .wg-slot > .card {
+    border:2px solid var(--primary) !important;
+    box-shadow:0 0 0 3px var(--primary-ultra-light);
+  }
+  .dash-edit-mode .wg-slot .card-header {
+    cursor:grab !important;
+    background:linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
+    border-radius:10px 10px 0 0;
+    user-select:none;
+  }
+  .dash-edit-mode .wg-slot .card-header * {
+    color:#fff !important;
+    cursor:grab !important;
+  }
+  .dash-edit-mode .wg-slot .card-header:active { cursor:grabbing !important; }
+
+  /* Delete button inside card-header */
+  .wg-del-btn {
+    background:rgba(220,40,40,.5); border:1px solid rgba(255,255,255,.4);
+    color:#fff !important; border-radius:6px; padding:3px 10px;
+    font-size:12px; cursor:pointer !important; font-family:inherit;
+    font-weight:700; white-space:nowrap; margin-left:auto; flex-shrink:0;
+  }
+  .wg-del-btn:active { background:rgba(200,20,20,.9); }
+
+  /* Hint label in edit mode */
+  .dash-edit-mode .wg-slot .card-header::before {
+    content:'⠿ ';
+    font-size:16px; opacity:.7; margin-right:4px;
+  }
+
+  /* Resize mode */
   .wg-resize-mode .wg-slot > .card {
     overflow:auto; resize:both;
     border:2px dashed var(--primary) !important;
     box-shadow:0 0 0 3px var(--primary-ultra-light);
   }
 
-  /* Edit mode: control bar visible */
-  .wg-ctrl { display:none; }
-  .dash-edit-mode .wg-ctrl {
-    display:flex; align-items:center; gap:8px;
-    background:linear-gradient(90deg, var(--primary), var(--primary-light));
-    border-radius:10px 10px 0 0;
-    padding:6px 10px;
-  }
-  .dash-edit-mode .wg-slot > .card {
-    border:2px solid var(--primary-light) !important;
-    border-radius:0 0 12px 12px !important;
-  }
-  .dash-edit-mode.wg-resize-mode .wg-slot > .card {
-    border:2px dashed var(--primary) !important;
-    border-radius:0 0 12px 12px !important;
-  }
-
-  /* Drag handle */
-  .wg-drag-handle {
-    color:#fff; font-size:18px; cursor:grab;
-    user-select:none; padding:2px 6px;
-    background:rgba(255,255,255,.2); border-radius:5px;
-    letter-spacing:2px; line-height:1;
-  }
-  .wg-drag-handle:active { cursor:grabbing; background:rgba(255,255,255,.4); }
-
-  .wg-name {
-    flex:1; color:#fff; font-size:11px; font-weight:700;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-
   /* Sortable states */
-  .wg-ghost { opacity:.3; background:var(--primary-ultra-light); border-radius:12px; }
-  .wg-chosen { box-shadow:0 8px 30px rgba(0,0,0,.2); }
-  .wg-dragging { opacity:.85; transform:rotate(1deg); box-shadow:0 12px 40px rgba(0,0,0,.25); }
-
-  /* Buttons */
-  .wg-btn {
-    border:none; border-radius:6px; cursor:pointer;
-    font-size:12px; padding:4px 10px;
-    font-family:inherit; font-weight:700;
-    flex-shrink:0; white-space:nowrap;
-  }
-  .wg-btn-del { background:rgba(220,50,50,.45); color:#fff; border:1px solid rgba(255,255,255,.3); }
-  .wg-btn-del:active { background:rgba(200,20,20,.9); }
+  .wg-ghost { opacity:.25; background:var(--primary-ultra-light) !important; border-radius:12px; }
+  .wg-chosen { box-shadow:0 8px 32px rgba(0,0,0,.22) !important; }
+  .wg-dragging { opacity:.9; transform:rotate(.8deg); box-shadow:0 14px 44px rgba(0,0,0,.28) !important; }
 
   /* Widget picker */
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
-  .wg-picker-item {
-    border:2px solid var(--border); border-radius:10px; padding:12px 8px;
-    text-align:center; cursor:pointer; transition:.15s; background:#fff;
-  }
+  .wg-picker-item { border:2px solid var(--border); border-radius:10px; padding:12px 8px; text-align:center; cursor:pointer; transition:.15s; background:#fff; }
   .wg-picker-item:active:not(.wg-used),
   .wg-picker-item:hover:not(.wg-used) { border-color:var(--primary); background:var(--primary-ultra-light); transform:translateY(-2px); }
   .wg-picker-item.wg-used { opacity:.45; cursor:default; border-style:dashed; }
@@ -9271,7 +9257,6 @@ function renderWidgets() {
   var container = document.getElementById('dashWidgetContainer');
   if(!container) return;
 
-  // Destroy previous sortable
   if(_sortable) { try { _sortable.destroy(); } catch(e){} _sortable = null; }
 
   container.innerHTML = '';
@@ -9286,16 +9271,22 @@ function renderWidgets() {
     slot.className = 'wg-slot';
     slot.dataset.wid = wid;
 
-    // Drag handle bar (edit mode only)
-    var ctrl = document.createElement('div');
-    ctrl.className = 'wg-ctrl';
-    ctrl.innerHTML =
-      '<span class="wg-drag-handle" title="ধরে টানুন">⠿⠿⠿</span>'
-      +'<span class="wg-name">'+def.icon+' '+def.label+'</span>'
-      +'<button class="wg-btn wg-btn-del" onclick="wgRemove(\''+wid+'\')">✕ বাদ</button>';
+    // Widget HTML
+    var html = def.render();
 
-    slot.appendChild(ctrl);
-    slot.insertAdjacentHTML('beforeend', def.render());
+    // In edit mode: make card-header green + add delete button
+    if(_dashEditMode) {
+      var delBtn = '<button class="wg-del-btn" onclick="event.stopPropagation();wgRemove(\''+wid+'\')">✕</button>';
+      // Insert delete button just before the first </div> that closes card-header
+      var hdrEnd = html.indexOf('</div>');
+      if(hdrEnd > -1) {
+        html = html.slice(0, hdrEnd) + delBtn + html.slice(hdrEnd);
+      }
+    }
+
+    slot.insertAdjacentHTML('beforeend', html);
+
+    // Make entire card-header the drag handle in edit mode
     container.appendChild(slot);
   });
 
@@ -9303,11 +9294,10 @@ function renderWidgets() {
   setTimeout(wgRestoreSizes, 50);
   if(_wgResizeMode) container.classList.add('wg-resize-mode');
 
-  // Init SortableJS drag (edit mode only)
   if(_dashEditMode && window.Sortable) {
     _sortable = new Sortable(container, {
-      animation: 180,
-      handle: '.wg-drag-handle',
+      animation: 200,
+      handle: '.card-header',
       ghostClass: 'wg-ghost',
       chosenClass: 'wg-chosen',
       dragClass: 'wg-dragging',
