@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>অভিভাবক পোর্টাল</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700;800&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Noto Sans Bengali',sans-serif;background:#f4f6f8;color:#1a2e22;min-height:100vh;}
@@ -103,10 +101,12 @@ tr:hover td{background:#f8fffe;}
     <div class="tab-row">
       <button class="tab active" onclick="switchTab('attendance',this)">📅 উপস্থিতি</button>
       <button class="tab" onclick="switchTab('results',this)">📊 ফলাফল</button>
+      <button class="tab" onclick="switchTab('diary',this)">📓 ক্লাস ডায়েরি</button>
       <button class="tab" onclick="switchTab('fees',this)">💳 ফী ও বকেয়া</button>
       <button class="tab" onclick="switchTab('remarks',this)">💬 শিক্ষকের মন্তব্য</button>
       <button class="tab" id="leaveTabBtn" onclick="switchTab('leave',this)">📝 ছুটির আবেদন</button>
       <button class="tab" onclick="switchTab('payment',this)">💰 পেমেন্ট করুন</button>
+      <button class="tab" id="hostelTabBtn" onclick="switchTab('hostel',this)" style="display:none;">🏠 হোস্টেল</button>
     </div>
 
     <!-- Tab: Attendance -->
@@ -129,6 +129,20 @@ tr:hover td{background:#f8fffe;}
       <div class="card">
         <div class="card-title">📊 পরীক্ষার ফলাফল</div>
         <div id="resultsBody"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Diary -->
+    <div id="tab-diary" class="tab-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">📓 ক্লাস ডায়েরি</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <select id="pDiarySubject" onchange="renderParentDiary()" style="padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;">
+            <option value="">সব বিষয়</option>
+          </select>
+          <input type="date" id="pDiaryDate" onchange="renderParentDiary()" style="padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;">
+        </div>
+        <div id="parentDiaryBody"></div>
       </div>
     </div>
 
@@ -199,10 +213,36 @@ tr:hover td{background:#f8fffe;}
       </div>
     </div>
 
+    <!-- Tab: Hostel -->
+    <div id="tab-hostel" class="tab-content" style="display:none;">
+      <!-- Today's meal status -->
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">🍽️ আজকের খাবার</div>
+        <div id="parentTodayMeal" style="font-size:14px;">লোড হচ্ছে...</div>
+      </div>
+      <!-- Weekly meal routine -->
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">📅 সাপ্তাহিক খাবার রুটিন</div>
+        <div id="parentMealRoutine" style="overflow-x:auto;"></div>
+      </div>
+      <!-- Hostel fee -->
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">💰 হোস্টেল ফি</div>
+        <div id="parentHostelFee"></div>
+      </div>
+      <!-- Hostel leave -->
+      <div class="card">
+        <div class="card-title">🏖️ হোস্টেল ছুটির তথ্য</div>
+        <div id="parentHostelLeave"></div>
+      </div>
+    </div>
+
   </div><!-- /studentProfile -->
 
 </div><!-- /container -->
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 var firebaseConfig = {
   apiKey: "AIzaSyDCmruLhlbuieXhY8o7GqmIbjmWfWXXlLI",
@@ -215,13 +255,13 @@ var firebaseConfig = {
 if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
 
-var gData = { settings:{}, students:[], attendance:{}, results:[], feePayments:[], onlinePayments:[], studentRemarks:[], leaves:[] };
+var gData = { settings:{}, students:[], attendance:{}, results:[], feePayments:[], onlinePayments:[], studentRemarks:[], leaves:[], hostelAssignments:[], hostelMealRoutine:{}, hostelFees:[], hostelLeaves:[], diary:[], subjects:{}, examResults:{} };
 var gStudent = null;
 var PAYMENT_METHODS = { bkash:'bKash', nagad:'নগদ', bank:'ব্যাংক ট্রান্সফার' };
 var PAYMENT_NUMBERS = { bkash:'01XXXXXXXXX', nagad:'01XXXXXXXXX', bank:'AC: XXXXXXXXXXXX' };
 
 async function loadAllData() {
-  var keys = ['settings','students','attendance','results','feePayments','onlinePayments','studentRemarks','leaves'];
+  var keys = ['settings','students','attendance','results','feePayments','onlinePayments','studentRemarks','leaves','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','diary','subjects','examResults'];
   for(var i=0;i<keys.length;i++){
     try {
       var doc = await db.collection('madrasa').doc(keys[i]).get();
@@ -270,6 +310,10 @@ function showStudentProfile(s) {
   document.getElementById('pBlood').textContent = s.blood ? '🩸 '+s.blood : '';
   var photoArea = document.getElementById('sPhotoArea');
   photoArea.innerHTML = s.photo ? '<img src="'+s.photo+'" style="width:100%;height:100%;object-fit:cover;">' : (s.gender==='মহিলা'?'👩':'👦');
+  // Show hostel tab only if student is a resident
+  var isResident = (gData.hostelAssignments||[]).some(function(a){ return a.studentId===s.id && a.active; });
+  var hostelBtn = document.getElementById('hostelTabBtn');
+  if(hostelBtn) hostelBtn.style.display = isResident ? '' : 'none';
   // Default tab
   switchTab('attendance', document.querySelector('.tab'));
   renderAttendance(s);
@@ -280,11 +324,42 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById('tab-'+tab).style.display='block';
   if(btn) btn.classList.add('active');
+  if(tab==='diary') renderParentDiary();
   if(tab==='results') renderResults(gStudent);
   if(tab==='fees') renderFees(gStudent);
   if(tab==='payment') renderPaymentForm(gStudent);
   if(tab==='remarks') renderRemarks(gStudent);
   if(tab==='leave') renderParentLeave(gStudent);
+  if(tab==='hostel') renderParentHostel(gStudent);
+}
+
+function renderParentDiary() {
+  if(!gStudent) return;
+  var filterSub  = (document.getElementById('pDiarySubject')||{}).value||'';
+  var filterDate = (document.getElementById('pDiaryDate')||{}).value||'';
+  // Populate subjects filter
+  var subs = (gData.subjects&&gData.subjects[gStudent.cls])||[];
+  var subSel = document.getElementById('pDiarySubject');
+  if(subSel && subSel.options.length <= 1) {
+    subSel.innerHTML = '<option value="">সব বিষয়</option>'+subs.map(function(s){ return '<option>'+s+'</option>'; }).join('');
+  }
+  var entries = (gData.diary||[]).filter(function(e){ return e.cls===gStudent.cls; })
+    .sort(function(a,b){ return b.date.localeCompare(a.date); });
+  if(filterSub)  entries = entries.filter(function(e){ return e.subject===filterSub; });
+  if(filterDate) entries = entries.filter(function(e){ return e.date===filterDate; });
+  var el = document.getElementById('parentDiaryBody');
+  if(!el) return;
+  if(!entries.length) { el.innerHTML='<p style="color:#888;text-align:center;padding:20px;">কোনো এন্ট্রি নেই।</p>'; return; }
+  el.innerHTML = entries.map(function(e) {
+    return '<div style="border:1px solid #e0e0e0;border-radius:10px;padding:12px;margin-bottom:10px;">'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">'
+        +'<span style="background:#1a4a2e;color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;">'+e.subject+'</span>'
+        +'<span style="font-size:12px;color:#666;">📅 '+e.date+'</span>'
+      +'</div>'
+      +'<div style="font-size:13px;margin-bottom:6px;"><strong>📖 পাঠ্যক্রম:</strong> '+e.lesson+'</div>'
+      +(e.homework?'<div style="font-size:13px;background:#fffbec;border-left:3px solid #c9a227;padding:6px 10px;border-radius:0 6px 6px 0;"><strong>📝 বাড়ির কাজ:</strong> '+e.homework+'</div>':'')
+    +'</div>';
+  }).join('');
 }
 
 function renderRemarks(s) {
@@ -442,34 +517,125 @@ function renderAttendance(s) {
   document.getElementById('attMonthly').innerHTML = mHtml||'<p style="color:#888;text-align:center;padding:10px;">উপস্থিতির তথ্য নেই।</p>';
 }
 
+// ── GPA helper ──
+function pCalcGPA(pct) {
+  if(pct>=80) return {gpa:5.00,grade:'A+'};
+  if(pct>=70) return {gpa:4.00,grade:'A'};
+  if(pct>=60) return {gpa:3.50,grade:'A-'};
+  if(pct>=50) return {gpa:3.00,grade:'B'};
+  if(pct>=40) return {gpa:2.00,grade:'C'};
+  if(pct>=33) return {gpa:1.00,grade:'D'};
+  return {gpa:0,grade:'F'};
+}
+
+var P_EXAM_KEYS = [
+  { key:'mt1',    label:'১ম মডেল টেস্ট',    maxMark:100 },
+  { key:'mt2',    label:'২য় মডেল টেস্ট',    maxMark:100 },
+  { key:'half',   label:'অর্ধবার্ষিক',       maxMark:100 },
+  { key:'mt3',    label:'৩য় মডেল টেস্ট',    maxMark:100 },
+  { key:'mt4',    label:'৪র্থ মডেল টেস্ট',   maxMark:100 },
+  { key:'annual', label:'বার্ষিক / ফাইনাল',  maxMark:100 },
+];
+
 function renderResults(s) {
-  var results = (gData.results||[]).filter(function(r){ return r.studentId===s.id; });
-  if(!results.length){ document.getElementById('resultsBody').innerHTML='<p style="text-align:center;color:#888;padding:20px;">কোনো ফলাফল নেই।</p>'; return; }
-  var exams = {};
-  results.forEach(function(r){ var k=r.examName||'পরীক্ষা'; if(!exams[k]) exams[k]=[]; exams[k].push(r); });
-  var html = Object.keys(exams).map(function(examName){
-    var rows = exams[examName];
-    var total = rows.reduce(function(a,r){return a+Number(r.marks||0);},0);
-    var full = rows.reduce(function(a,r){return a+Number(r.fullMarks||100);},0);
-    var pct = full>0?Math.round(total/full*100):0;
-    var grade = pct>=80?'A+':pct>=70?'A':pct>=60?'A-':pct>=50?'B':pct>=40?'C':'F';
-    var gpa = pct>=80?5.0:pct>=70?4.0:pct>=60?3.5:pct>=50?3.0:pct>=40?2.0:0;
-    return '<div class="result-exam">'+
-      '<span>'+examName+'</span>'+
-      '<span>মোট: '+total+'/'+full+' | '+grade+' (GPA '+gpa+')</span>'+
-      '</div>'+
-      '<div class="result-table-wrap">'+
-        '<table><thead><tr><th>বিষয়</th><th>পূর্ণমান</th><th>প্রাপ্তমান</th><th>গ্রেড</th></tr></thead><tbody>'+
-        rows.map(function(r){
+  var el = document.getElementById('resultsBody');
+  if(!el) return;
+  var subjects = (gData.subjects&&gData.subjects[s.cls])||[];
+  var er = (gData.examResults&&gData.examResults[s.id])||{};
+
+  // Fallback: old results system
+  if(!subjects.length) {
+    var oldResults = (gData.results||[]).filter(function(r){ return r.studentId===s.id; });
+    if(!oldResults.length){ el.innerHTML='<p style="text-align:center;color:#888;padding:20px;">কোনো ফলাফল নেই।</p>'; return; }
+    var exams = {};
+    oldResults.forEach(function(r){ var k=r.examName||'পরীক্ষা'; if(!exams[k]) exams[k]=[]; exams[k].push(r); });
+    el.innerHTML = Object.keys(exams).map(function(examName){
+      var rows=exams[examName];
+      var total=rows.reduce(function(a,r){return a+Number(r.marks||0);},0);
+      var full=rows.reduce(function(a,r){return a+Number(r.fullMarks||100);},0);
+      var pct=full>0?Math.round(total/full*100):0;
+      var g=pCalcGPA(pct);
+      return '<div style="background:#1a4a2e;color:#fff;border-radius:8px 8px 0 0;padding:10px 14px;font-weight:700;margin-top:14px;">'+examName+' — মোট: '+total+'/'+full+' | '+g.grade+' (GPA '+g.gpa.toFixed(2)+')</div>'
+        +'<div style="overflow-x:auto;"><table><thead><tr><th>বিষয়</th><th>পূর্ণমান</th><th>প্রাপ্তমান</th><th>গ্রেড</th></tr></thead><tbody>'
+        +rows.map(function(r){
           var m=Number(r.marks||0),f=Number(r.fullMarks||100),p=f>0?Math.round(m/f*100):0;
-          var g=p>=80?'A+':p>=70?'A':p>=60?'A-':p>=50?'B':p>=40?'C':'F';
-          return '<tr><td><b>'+(r.subject||'-')+'</b></td><td style="text-align:center;">'+f+'</td>'+
-            '<td style="text-align:center;font-weight:700;color:'+(p>=70?'#155724':p>=40?'#856404':'#721c24')+';">'+m+'</td>'+
-            '<td style="text-align:center;"><span class="badge '+(p>=70?'badge-green':p>=40?'badge-yellow':'badge-red')+'">'+g+'</span></td></tr>';
-        }).join('')+
-        '</tbody></table></div>';
-  }).join('');
-  document.getElementById('resultsBody').innerHTML = html;
+          var gr=pCalcGPA(p);
+          return '<tr><td>'+( r.subject||'-')+'</td><td style="text-align:center;">'+f+'</td>'
+            +'<td style="text-align:center;font-weight:700;">'+m+'</td>'
+            +'<td style="text-align:center;"><span class="badge '+(p>=70?'badge-green':p>=40?'badge-yellow':'badge-red')+'">'+gr.grade+'</span></td></tr>';
+        }).join('')+'</tbody></table></div>';
+    }).join('');
+    return;
+  }
+
+  // New exam-wise result sheet
+  var html = '';
+  P_EXAM_KEYS.forEach(function(exam) {
+    var marks = er[exam.key]||{};
+    var anyMark = subjects.some(function(sub){ var m=marks[sub]; return m!==undefined&&m!==''&&!isNaN(Number(m)); });
+
+    var extraNote = exam.key==='half'?' <small style="font-weight:400;opacity:.8;">(MT-1 + MT-2 গড় অন্তর্ভুক্ত)</small>':'';
+    if(exam.key==='annual') extraNote=' <small style="font-weight:400;opacity:.8;">(MT-3 + MT-4 + বার্ষিক সমন্বয়)</small>';
+
+    html += '<div style="margin-bottom:20px;">'
+      +'<div style="background:#1a4a2e;color:#fff;border-radius:8px 8px 0 0;padding:10px 14px;font-weight:700;">'+exam.label+extraNote+'</div>'
+      +'<div style="overflow-x:auto;">'
+      +'<table><thead><tr><th>বিষয়</th><th>পূর্ণমান</th><th>প্রাপ্তমান</th><th>%</th><th>গ্রেড</th></tr></thead><tbody>';
+
+    var totObt=0, totMax=0;
+    subjects.forEach(function(sub, si) {
+      var m = marks[sub];
+      var obtained = (m!==undefined&&m!==''&&!isNaN(Number(m)))?Number(m):null;
+      var pct = obtained!==null ? Math.round(obtained/exam.maxMark*100) : null;
+      var g = pct!==null ? pCalcGPA(pct) : null;
+      if(obtained!==null){ totObt+=obtained; totMax+=exam.maxMark; }
+      html += '<tr style="background:'+(si%2===0?'#f8f8f8':'#fff')+'">'
+        +'<td><b>'+sub+'</b></td>'
+        +'<td style="text-align:center;">'+exam.maxMark+'</td>'
+        +'<td style="text-align:center;font-weight:700;color:'+(obtained===null?'#ccc':obtained<exam.maxMark*0.33?'#c0392b':'#1a4a2e')+'">'+(obtained!==null?obtained:'—')+'</td>'
+        +'<td style="text-align:center;">'+(pct!==null?pct+'%':'—')+'</td>'
+        +'<td style="text-align:center;">'+(g?'<span class="badge '+(pct>=70?'badge-green':pct>=40?'badge-yellow':'badge-red')+'">'+g.grade+'</span>':'—')+'</td>'
+      +'</tr>';
+    });
+
+    if(anyMark) {
+      var totalPct = Math.round(totObt/totMax*100);
+      var combined = totalPct;
+
+      if(exam.key==='half') {
+        var mt1m=er['mt1']||{}, mt2m=er['mt2']||{};
+        var s1=0,s2=0,mx=0,ok=false;
+        subjects.forEach(function(sub){
+          var a=mt1m[sub],b=mt2m[sub];
+          if(a!==undefined&&b!==undefined&&!isNaN(Number(a))&&!isNaN(Number(b))){ s1+=Number(a);s2+=Number(b);mx+=exam.maxMark;ok=true; }
+        });
+        if(ok){ var mtPct=Math.round((s1+s2)/(mx*2)*100); combined=Math.round((totalPct+mtPct)/2); }
+      }
+      if(exam.key==='annual') {
+        var mt3m=er['mt3']||{}, mt4m=er['mt4']||{};
+        var s3=0,s4=0,mx2=0,ok2=false;
+        subjects.forEach(function(sub){
+          var a=mt3m[sub],b=mt4m[sub];
+          if(a!==undefined&&b!==undefined&&!isNaN(Number(a))&&!isNaN(Number(b))){ s3+=Number(a);s4+=Number(b);mx2+=exam.maxMark;ok2=true; }
+        });
+        if(ok2){ var mt34Pct=Math.round((s3+s4)/(mx2*2)*100); combined=Math.round((totalPct*2+mt34Pct)/3); }
+      }
+
+      var combG = pCalcGPA(combined);
+      html += '<tr style="background:#1a4a2e;color:#fff;font-weight:700;">'
+        +'<td>সর্বমোট</td><td style="text-align:center;">'+totMax+'</td>'
+        +'<td style="text-align:center;">'+totObt+'</td>'
+        +'<td style="text-align:center;">'+totalPct+'%'+(combined!==totalPct?' → '+combined+'%':'')+'</td>'
+        +'<td style="text-align:center;">GPA '+combG.gpa.toFixed(2)+' ('+combG.grade+')</td>'
+      +'</tr>';
+    } else {
+      html += '<tr><td colspan="5" style="text-align:center;color:#888;padding:12px;">এখনো মার্ক দেওয়া হয়নি</td></tr>';
+    }
+
+    html += '</tbody></table></div></div>';
+  });
+
+  el.innerHTML = html || '<p style="text-align:center;color:#888;padding:20px;">কোনো ফলাফল নেই।</p>';
 }
 
 function renderFees(s) {
@@ -627,6 +793,121 @@ async function refreshPaymentStatus() {
 }
 
 // Auto-load from URL param
+
+function renderParentHostel(s) {
+  var today = new Date().toISOString().split('T')[0];
+  var dayNames = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
+  var todayDay = dayNames[new Date().getDay()];
+  var MEALS = ['সকাল','দুপুর','রাত'];
+  var routine = gData.hostelMealRoutine||{};
+
+  // Check if on leave today
+  var onLeave = (gData.hostelLeaves||[]).some(function(l){
+    return l.studentId===s.id && l.from<=today && l.to>=today && l.active!==false;
+  });
+
+  // Today's meal
+  var todayEl = document.getElementById('parentTodayMeal');
+  if(todayEl) {
+    if(onLeave) {
+      todayEl.innerHTML = '<div style="background:#fde8e8;border-radius:8px;padding:16px;text-align:center;">'+
+        '<div style="font-size:32px;margin-bottom:8px;">🏖️</div>'+
+        '<div style="font-weight:700;color:#c0392b;font-size:15px;">আজ ছুটিতে আছেন</div>'+
+        '<div style="font-size:12px;color:#888;margin-top:4px;">খাবার সরবরাহ বন্ধ রয়েছে</div>'+
+      '</div>';
+    } else {
+      var todayMenu = routine[todayDay]||{};
+      var anyMenu = MEALS.some(function(m){ return todayMenu[m]; });
+      if(!anyMenu) {
+        todayEl.innerHTML = '<p style="color:#888;text-align:center;padding:12px;">আজকের মেনু এখনো দেওয়া হয়নি।</p>';
+      } else {
+        todayEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;">'+todayDay+'</div>'+
+          MEALS.map(function(m){
+            return '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #eee;align-items:center;">'+
+              '<span style="min-width:50px;font-size:12px;color:#888;font-weight:700;">'+m+'</span>'+
+              '<span style="font-size:14px;">'+(todayMenu[m]||'<i style="color:#bbb;">নির্ধারিত নেই</i>')+'</span>'+
+            '</div>';
+          }).join('');
+      }
+    }
+  }
+
+  // Weekly routine table
+  var routineEl = document.getElementById('parentMealRoutine');
+  if(routineEl) {
+    routineEl.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
+      '<thead><tr>'+
+        '<th style="background:#1a4a2e;color:#fff;padding:8px;min-width:80px;">দিন</th>'+
+        '<th style="background:#1a4a2e;color:#fff;padding:8px;">সকাল</th>'+
+        '<th style="background:#1a4a2e;color:#fff;padding:8px;">দুপুর</th>'+
+        '<th style="background:#1a4a2e;color:#fff;padding:8px;">রাত</th>'+
+      '</tr></thead><tbody>'+
+      ['শনিবার','রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার'].map(function(day){
+        var m = routine[day]||{};
+        var isToday = day===todayDay;
+        return '<tr style="background:'+(isToday?'#e8f5ee':'')+'">'+
+          '<td style="padding:7px;font-weight:'+(isToday?'700':'400')+';color:'+(isToday?'#1a4a2e':'#333')+';">'+
+            (isToday?'▶ ':'')+day+'</td>'+
+          '<td style="padding:7px;">'+(m['সকাল']||'-')+'</td>'+
+          '<td style="padding:7px;">'+(m['দুপুর']||'-')+'</td>'+
+          '<td style="padding:7px;">'+(m['রাত']||'-')+'</td>'+
+        '</tr>';
+      }).join('')+
+      '</tbody></table>';
+  }
+
+  // Hostel fee
+  var feeEl = document.getElementById('parentHostelFee');
+  if(feeEl) {
+    var rate = gData.settings.hostelFeeRate||0;
+    var assignment = (gData.hostelAssignments||[]).find(function(a){ return a.studentId===s.id&&a.active; });
+    var paid = (gData.hostelFees||[]).filter(function(f){ return f.studentId===s.id; }).reduce(function(a,b){ return a+Number(b.amount); },0);
+    if(assignment && rate) {
+      var months = 1;
+      if(assignment.date) {
+        var start=new Date(assignment.date), now=new Date();
+        months = Math.max(1, (now.getFullYear()-start.getFullYear())*12+(now.getMonth()-start.getMonth())+1);
+      }
+      var due = Math.max(0, months*rate - paid);
+      feeEl.innerHTML = '<div class="stat-grid">'+
+        '<div class="stat-box"><div class="n">৳ '+paid.toLocaleString()+'</div><div class="l">মোট পরিশোধিত</div></div>'+
+        '<div class="stat-box '+(due>0?'danger':'accent')+'"><div class="n">৳ '+due.toLocaleString()+'</div><div class="l">'+(due>0?'বকেয়া':'পরিশোধিত ✅')+'</div></div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:#888;margin-top:4px;">মাসিক হার: ৳ '+rate.toLocaleString()+' | ভর্তির তারিখ: '+assignment.date+'</div>';
+    } else {
+      feeEl.innerHTML = '<p style="color:#888;text-align:center;padding:12px;">হোস্টেল ফির তথ্য নেই।</p>';
+    }
+  }
+
+  // Hostel leaves
+  var leaveEl = document.getElementById('parentHostelLeave');
+  if(leaveEl) {
+    var leaves = (gData.hostelLeaves||[]).filter(function(l){ return l.studentId===s.id; })
+      .sort(function(a,b){ return b.from.localeCompare(a.from); });
+    if(leaves.length===0) {
+      leaveEl.innerHTML = '<p style="color:#888;text-align:center;padding:12px;">কোনো হোস্টেল ছুটির রেকর্ড নেই।</p>';
+    } else {
+      leaveEl.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
+        '<thead><tr>'+
+          '<th style="background:#1a4a2e;color:#fff;padding:7px;">থেকে</th>'+
+          '<th style="background:#1a4a2e;color:#fff;padding:7px;">পর্যন্ত</th>'+
+          '<th style="background:#1a4a2e;color:#fff;padding:7px;">কারণ</th>'+
+          '<th style="background:#1a4a2e;color:#fff;padding:7px;">খাবার</th>'+
+        '</tr></thead><tbody>'+
+        leaves.map(function(l){
+          var active = l.from<=today && l.to>=today;
+          return '<tr>'+
+            '<td style="padding:7px;">'+l.from+'</td>'+
+            '<td style="padding:7px;">'+l.to+'</td>'+
+            '<td style="padding:7px;">'+(l.reason||'-')+'</td>'+
+            '<td style="padding:7px;text-align:center;">'+(active?'❌ বন্ধ':'✅ চালু')+'</td>'+
+          '</tr>';
+        }).join('')+
+        '</tbody></table>';
+    }
+  }
+}
+
 window.addEventListener('load', async function(){
   document.getElementById('loader').style.display='block';
   await loadAllData();
