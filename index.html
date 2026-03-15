@@ -1586,20 +1586,69 @@
 
     <!-- ======================== RESULT SHEET PAGE ======================== -->
     <div id="page-resultsheet" class="page">
-      <div class="card">
-        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
-          <span class="card-title">📊 শিক্ষার্থী রেজাল্ট শিট</span>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <select id="rsFilterCls" onchange="rsFilterStudents()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
-              <option value="">শ্রেণি বেছে নিন</option>
-            </select>
-            <input type="text" id="rsSearchInput" oninput="rsFilterStudents()" placeholder="🔍 নাম / রোল..." style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;width:160px;">
+
+      <!-- Tab switcher -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button id="rsTab_student" onclick="rsSwitchTab('student')"
+          style="padding:8px 18px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
+          👤 শিক্ষার্থীভিত্তিক
+        </button>
+        <button id="rsTab_class" onclick="rsSwitchTab('class')"
+          style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
+          🏫 শ্রেণিভিত্তিক (গণ প্রিন্ট)
+        </button>
+      </div>
+
+      <!-- Tab: Student wise -->
+      <div id="rsPanel_student">
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+            <span class="card-title">👤 শিক্ষার্থীভিত্তিক রেজাল্ট শিট</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <select id="rsFilterCls" onchange="rsFilterStudents()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+                <option value="">শ্রেণি বেছে নিন</option>
+              </select>
+              <input type="text" id="rsSearchInput" oninput="rsFilterStudents()" placeholder="🔍 নাম / রোল..." style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;width:160px;">
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="rsStudentGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
           </div>
         </div>
-        <div class="card-body">
-          <div id="rsStudentGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
+      </div>
+
+      <!-- Tab: Class wise -->
+      <div id="rsPanel_class" style="display:none;">
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+            <span class="card-title">🏫 শ্রেণিভিত্তিক রেজাল্ট শিট</span>
+          </div>
+          <div class="card-body">
+            <!-- Step 1: শ্রেণি বেছে নিন -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">শ্রেণি *</label>
+                <select id="rsClsCls" onchange="rsClsLoadExams()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+                  <option value="">বেছে নিন</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:220px;">
+                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">পরীক্ষা বেছে নিন (একাধিক)</label>
+                <div id="rsExamCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fafafa;min-height:42px;">
+                  <span style="color:var(--text-muted);font-size:12px;">আগে শ্রেণি বেছে নিন</span>
+                </div>
+              </div>
+              <button onclick="rsGenerateClassSheet()" class="btn btn-primary" style="white-space:nowrap;">
+                📋 শিট তৈরি করুন
+              </button>
+            </div>
+
+            <!-- Generated sheet preview -->
+            <div id="rsClassSheetPreview"></div>
+          </div>
         </div>
       </div>
+
     </div>
 
   </div><!-- /content -->
@@ -10087,11 +10136,25 @@ function calcCombinedResult(studentId, examKey, subjects, marks) {
   };
 }
 
+function rsSwitchTab(tab) {
+  document.getElementById('rsPanel_student').style.display = tab==='student' ? '' : 'none';
+  document.getElementById('rsPanel_class').style.display   = tab==='class'   ? '' : 'none';
+  var btnS = document.getElementById('rsTab_student');
+  var btnC = document.getElementById('rsTab_class');
+  if(btnS) { btnS.style.background = tab==='student'?'var(--primary)':'#fff'; btnS.style.color = tab==='student'?'#fff':'var(--text)'; btnS.style.borderColor = 'var(--primary)'; }
+  if(btnC) { btnC.style.background = tab==='class'?'var(--primary)':'#fff'; btnC.style.color = tab==='class'?'#fff':'var(--text)'; btnC.style.borderColor = tab==='class'?'var(--primary)':'var(--border)'; }
+}
+
 function rsPopulateFilters() {
+  var classes = data.settings.classes||[];
+  // Student tab
   var sel = document.getElementById('rsFilterCls');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">শ্রেণি বেছে নিন</option>'
-    + (data.settings.classes||[]).map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  if(sel) sel.innerHTML = '<option value="">শ্রেণি বেছে নিন</option>'
+    + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  // Class tab
+  var sel2 = document.getElementById('rsClsCls');
+  if(sel2) sel2.innerHTML = '<option value="">বেছে নিন</option>'
+    + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
 }
 
 function rsFilterStudents() {
@@ -10112,6 +10175,245 @@ function rsFilterStudents() {
       +'<div style="margin-top:8px;font-size:11px;background:var(--primary-ultra-light);border-radius:6px;padding:4px 8px;color:var(--primary);font-weight:600;">📊 রেজাল্ট শিট দেখুন</div>'
     +'</div>';
   }).join('');
+}
+
+// ── Class-wise result sheet ──
+
+function rsClsLoadExams() {
+  var cls = (document.getElementById('rsClsCls')||{}).value||'';
+  var el  = document.getElementById('rsExamCheckboxes');
+  if(!el) return;
+  if(!cls) { el.innerHTML='<span style="color:var(--text-muted);font-size:12px;">আগে শ্রেণি বেছে নিন</span>'; return; }
+  el.innerHTML = EXAM_KEYS.map(function(e){
+    return '<label style="display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;">'
+      +'<input type="checkbox" value="'+e.key+'" style="cursor:pointer;">'+e.label
+    +'</label>';
+  }).join('');
+  // preview clear
+  var pr = document.getElementById('rsClassSheetPreview');
+  if(pr) pr.innerHTML = '';
+}
+
+function rsGetStudentExamTotal(sid, examKey, subjects) {
+  var er = (data.examResults&&data.examResults[sid])||{};
+  var marks = er[examKey]||{};
+  var isHalf   = examKey==='half';
+  var isAnnual = examKey==='annual';
+  var defMax   = (examKey==='mt1'||examKey==='mt2'||examKey==='mt3'||examKey==='mt4') ? 20 : 80;
+  var maxMark  = getExamMaxMark(sid, examKey, defMax);
+
+  var totObt=0, totMax=0, hasAny=false;
+  subjects.forEach(function(sub){
+    var m = marks[sub];
+    if(m===undefined||m===''||isNaN(Number(m))) return;
+    var obt = Number(m);
+    var mtAvg = 0;
+    if(isHalf||isAnnual){
+      var mkA=isHalf?'mt1':'mt3', mkB=isHalf?'mt2':'mt4';
+      var mA=(er[mkA]||{})[sub], mB=(er[mkB]||{})[sub];
+      var mxA=getExamMaxMark(sid,mkA,20), mxB=getExamMaxMark(sid,mkB,20);
+      if(mA!==undefined&&mB!==undefined&&!isNaN(Number(mA))&&!isNaN(Number(mB)))
+        mtAvg=(Number(mA)/mxA+Number(mB)/mxB)/2*20;
+    }
+    totObt += obt + mtAvg;
+    totMax += maxMark + (isHalf||isAnnual?20:0);
+    hasAny = true;
+  });
+  return hasAny ? { obt: Math.round(totObt*10)/10, max: totMax, pct: Math.round(totObt/totMax*100) } : null;
+}
+
+function rsGenerateClassSheet() {
+  var cls = (document.getElementById('rsClsCls')||{}).value||'';
+  if(!cls) { toast('শ্রেণি বেছে নিন।','error'); return; }
+
+  var checked = [];
+  (document.querySelectorAll('#rsExamCheckboxes input:checked')||[]).forEach(function(cb){ checked.push(cb.value); });
+  if(!checked.length) { toast('অন্তত একটি পরীক্ষা বেছে নিন।','error'); return; }
+
+  var subjects  = getSubjects(cls);
+  if(!subjects.length) { toast('এই শ্রেণিতে বিষয় নেই।','error'); return; }
+
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; })
+    .sort(function(a,b){ return (Number(a.roll)||999)-(Number(b.roll)||999); });
+  if(!students.length) { toast('এই শ্রেণিতে কোনো শিক্ষার্থী নেই।','error'); return; }
+
+  var examDefs = checked.map(function(k){ return EXAM_KEYS.find(function(e){ return e.key===k; }); }).filter(Boolean);
+
+  // Build HTML table
+  var html = buildClassSheetHTML(cls, students, subjects, examDefs);
+
+  var pr = document.getElementById('rsClassSheetPreview');
+  if(pr) {
+    pr.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">'
+      +'<button onclick="printClassSheet()" class="btn btn-primary">🖨️ প্রিন্ট করুন</button>'
+    +'</div>'
+    + html;
+  }
+}
+
+function buildClassSheetHTML(cls, students, subjects, examDefs) {
+  var instName = (data.settings&&data.settings.name)||'মাদ্রাসা';
+  var examLabels = examDefs.map(function(e){ return e.label; }).join(' + ');
+
+  var html = '<div id="classSheetPrintArea" style="overflow-x:auto;">'
+    +'<div style="text-align:center;margin-bottom:12px;">'
+      +'<div style="font-size:16px;font-weight:800;color:#1a4a2e;">'+instName+'</div>'
+      +'<div style="font-size:13px;font-weight:700;margin-top:4px;">শ্রেণি: '+cls+' | পরীক্ষা: '+examLabels+'</div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px;">';
+
+  // Header rows — one per exam if multiple
+  if(examDefs.length === 1) {
+    // Single exam — subject-wise columns
+    var exam = examDefs[0];
+    var isHalf=exam.type==='half', isAnnual=exam.type==='annual';
+    html += '<thead>'
+      +'<tr style="background:#1a4a2e;color:#fff;">'
+        +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">রোল</th>'
+        +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;">নাম</th>'
+        + subjects.map(function(s){ return '<th style="padding:7px 8px;border:1px solid #999;text-align:center;">'+s+'</th>'; }).join('')
+        +(isHalf||isAnnual?'<th style="padding:7px 8px;border:1px solid #999;text-align:center;">MT গড়→২০</th>':'')
+        +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">মোট</th>'
+        +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">%</th>'
+        +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">GPA</th>'
+        +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">মেধাস্থান</th>'
+      +'</tr>'
+      +'<tr style="background:#2d7a4f;color:#fff;">'
+        + subjects.map(function(){ return '<th style="padding:4px 8px;border:1px solid #999;text-align:center;font-size:10px;">'+exam.label+'</th>'; }).join('')
+        +(isHalf||isAnnual?'<th style="padding:4px 8px;border:1px solid #999;text-align:center;font-size:10px;"></th>':'')
+      +'</tr>'
+      +'</thead>';
+
+    // Rank calculation
+    var defMax=(exam.type==='mt')?20:80;
+    var ranks = {};
+    var scores = students.map(function(s){
+      var r = rsGetStudentExamTotal(s.id, exam.key, subjects);
+      return {id:s.id, obt: r?r.obt:-1};
+    }).filter(function(x){return x.obt>=0;}).sort(function(a,b){return b.obt-a.obt;});
+    scores.forEach(function(sc,i){ ranks[sc.id]=i+1; });
+
+    html += '<tbody>';
+    students.forEach(function(s, si) {
+      var er = (data.examResults&&data.examResults[s.id])||{};
+      var marks = er[exam.key]||{};
+      var maxMark = getExamMaxMark(s.id, exam.key, defMax);
+      var totObt=0, totMax=0, hasAny=false, mtSum=0;
+
+      var subCells = subjects.map(function(sub){
+        var m=marks[sub];
+        var v = (m!==undefined&&m!==''&&!isNaN(Number(m)))?Number(m):null;
+        if(v!==null){ totObt+=v; totMax+=maxMark; hasAny=true; }
+        var color = v===null?'#aaa':v<maxMark*0.33?'#c0392b':v<maxMark*0.5?'#e67e22':'#1a4a2e';
+        return '<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;color:'+color+';">'+(v!==null?v:'—')+'</td>';
+      }).join('');
+
+      var mtCell = '';
+      if(isHalf||isAnnual) {
+        var mkA=isHalf?'mt1':'mt3', mkB=isHalf?'mt2':'mt4';
+        var mt1m=er[mkA]||{}, mt2m=er[mkB]||{};
+        var mxA=getExamMaxMark(s.id,mkA,20), mxB=getExamMaxMark(s.id,mkB,20);
+        var hasMT=false;
+        subjects.forEach(function(sub){
+          var a=mt1m[sub],b=mt2m[sub];
+          if(a!==undefined&&b!==undefined&&!isNaN(Number(a))&&!isNaN(Number(b))){
+            var avg=(Number(a)/mxA+Number(b)/mxB)/2*20;
+            mtSum+=avg; totObt+=avg; totMax+=20; hasMT=true;
+          }
+        });
+        mtCell = '<td style="padding:6px 8px;border:1px solid #eee;text-align:center;color:#2980b9;">'+(hasMT?Math.round(mtSum*10)/10:'—')+'</td>';
+      }
+
+      var pct = hasAny&&totMax>0 ? Math.round(totObt/totMax*100) : null;
+      var g   = pct!==null ? calcGPA(pct) : null;
+      var rank = ranks[s.id]||'—';
+      var bg = si%2===0?'#fff':'#f8f8f8';
+
+      html += '<tr style="background:'+bg+';">'
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;">'+(s.roll||si+1)+'</td>'
+        +'<td style="padding:6px 8px;border:1px solid #eee;font-weight:600;">'+s.name+'</td>'
+        + subCells + mtCell
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;">'+(hasAny?Math.round(totObt*10)/10+'/'+totMax:'—')+'</td>'
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;">'+(pct!==null?pct+'%':'—')+'</td>'
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;">'+(g?g.grade:'—')+'</td>'
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;color:var(--primary);">'+rank+'</td>'
+      +'</tr>';
+    });
+    html += '</tbody>';
+
+  } else {
+    // Multiple exams — exam-wise total columns per student
+    html += '<thead><tr style="background:#1a4a2e;color:#fff;">'
+      +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">রোল</th>'
+      +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;">নাম</th>'
+      + examDefs.map(function(e){
+          return '<th colspan="3" style="padding:7px 8px;border:1px solid #999;text-align:center;">'+e.label+'</th>';
+        }).join('')
+      +'<th rowspan="2" style="padding:7px 8px;border:1px solid #999;text-align:center;">সার্বিক মেধাস্থান</th>'
+    +'</tr><tr style="background:#2d7a4f;color:#fff;">'
+      + examDefs.map(function(){
+          return '<th style="padding:4px 6px;border:1px solid #999;font-size:11px;text-align:center;">মোট</th>'
+            +'<th style="padding:4px 6px;border:1px solid #999;font-size:11px;text-align:center;">%</th>'
+            +'<th style="padding:4px 6px;border:1px solid #999;font-size:11px;text-align:center;">GPA</th>';
+        }).join('')
+    +'</tr></thead>';
+
+    // Grand total rank (sum of all selected exams)
+    var grandRanks = {};
+    var grandScores = students.map(function(s){
+      var total=0, has=false;
+      examDefs.forEach(function(e){
+        var r=rsGetStudentExamTotal(s.id,e.key,subjects);
+        if(r){total+=r.obt;has=true;}
+      });
+      return {id:s.id,total:has?total:-1};
+    }).filter(function(x){return x.total>=0;}).sort(function(a,b){return b.total-a.total;});
+    grandScores.forEach(function(sc,i){grandRanks[sc.id]=i+1;});
+
+    html += '<tbody>';
+    students.forEach(function(s,si){
+      var cells = examDefs.map(function(e){
+        var r = rsGetStudentExamTotal(s.id, e.key, subjects);
+        if(!r) return '<td colspan="3" style="padding:6px 8px;border:1px solid #eee;text-align:center;color:#aaa;">—</td>';
+        var g = calcGPA(r.pct);
+        var c = r.pct<33?'#c0392b':r.pct<50?'#e67e22':'#1a4a2e';
+        return '<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;color:'+c+';">'+r.obt+'/'+r.max+'</td>'
+          +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;">'+r.pct+'%</td>'
+          +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;">'+g.grade+'</td>';
+      }).join('');
+      var bg=si%2===0?'#fff':'#f8f8f8';
+      html += '<tr style="background:'+bg+';">'
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;">'+(s.roll||si+1)+'</td>'
+        +'<td style="padding:6px 8px;border:1px solid #eee;font-weight:600;">'+s.name+'</td>'
+        + cells
+        +'<td style="padding:6px 8px;border:1px solid #eee;text-align:center;font-weight:700;color:var(--primary);">'+(grandRanks[s.id]||'—')+'</td>'
+      +'</tr>';
+    });
+    html += '</tbody>';
+  }
+
+  html += '</table></div>';
+  return html;
+}
+
+function printClassSheet() {
+  var area = document.getElementById('classSheetPrintArea');
+  if(!area) return;
+  var cls  = (document.getElementById('rsClsCls')||{}).value||'শ্রেণি';
+  var w = window.open('','_blank');
+  w.document.write('<html><head><meta charset="UTF-8">'
+    +'<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap" rel="stylesheet">'
+    +'<style>'
+    +'body{font-family:"Noto Sans Bengali",sans-serif;padding:16px;font-size:12px;}'
+    +'table{width:100%;border-collapse:collapse;}'
+    +'th,td{border:1px solid #999;padding:5px 7px;}'
+    +'@media print{@page{size:landscape;margin:10mm;}button{display:none;}}'
+    +'</style>'
+    +'<title>'+cls+' রেজাল্ট শিট</title></head><body>'
+    + area.innerHTML
+    +'</body></html>');
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 600);
 }
 
 function openResultSheet(studentId) {
@@ -10735,12 +11037,11 @@ var _fns = {
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
   addSubject, removeSubject, renderSubjectPerClass, renderSubjectPage,
-  openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects,
+  openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects, diaryPopulateFilters,
   openResultSheet, openMarkEntry, saveMarkEntry, printResultSheetModal,
-  rsFilterStudents, setExamMaxMarkAndRefresh,
+  rsFilterStudents, rsPopulateFilters, rsSwitchTab, rsClsLoadExams, rsGenerateClassSheet, printClassSheet,
+  setExamMaxMarkAndRefresh,
   waSetFilter, waOpenAll, waSelectTpl, waQuickSearch, waQuickPick,
-  addSubject, removeSubject, renderSubjectPerClass,
-  renderDiary, openDiaryModal, diaryLoadSubjects, saveDiaryEntry, editDiaryEntry, deleteDiaryEntry, diaryPopulateFilters,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
