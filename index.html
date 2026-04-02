@@ -1681,19 +1681,59 @@
     <div id="page-resultsheet" class="page">
 
       <!-- Tab switcher -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <button id="rsTab_student" onclick="rsSwitchTab('student')"
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button id="rsTab_bulk" onclick="rsSwitchTab('bulk')"
           style="padding:8px 18px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
+          ✏️ মার্ক এন্ট্রি (বাল্ক)
+        </button>
+        <button id="rsTab_student" onclick="rsSwitchTab('student')"
+          style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
           👤 শিক্ষার্থীভিত্তিক
         </button>
         <button id="rsTab_class" onclick="rsSwitchTab('class')"
           style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
           🏫 শ্রেণিভিত্তিক (গণ প্রিন্ট)
         </button>
+        <button id="rsTab_final" onclick="rsSwitchTab('final')"
+          style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
+          🏆 চূড়ান্ত ফলাফল
+        </button>
       </div>
 
-      <!-- Tab: Student wise -->
-      <div id="rsPanel_student">
+      <!-- ══════════ Tab: BULK MARK ENTRY ══════════ -->
+      <div id="rsPanel_bulk">
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+            <span class="card-title">✏️ বাল্ক মার্ক এন্ট্রি — সব শিক্ষার্থী একসাথে</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <select id="bulkCls" onchange="bulkLoadTable()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+                <option value="">শ্রেণি বেছে নিন</option>
+              </select>
+              <select id="bulkExam" onchange="bulkLoadTable()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+                <option value="">পরীক্ষা বেছে নিন</option>
+                <option value="mt1">১ম মডেল টেস্ট (২০)</option>
+                <option value="mt2">২য় মডেল টেস্ট (২০)</option>
+                <option value="half">অর্ধ-বার্ষিক (৮০)</option>
+                <option value="mt3">৩য় মডেল টেস্ট (২০)</option>
+                <option value="mt4">৪র্থ মডেল টেস্ট (২০)</option>
+                <option value="annual">বার্ষিক পরীক্ষা (৮০)</option>
+              </select>
+              <button onclick="bulkSaveAll()" class="btn btn-primary" style="white-space:nowrap;">💾 সব সেভ করুন</button>
+            </div>
+          </div>
+          <div class="card-body" style="overflow-x:auto;">
+            <div id="bulkMarkTable">
+              <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div style="font-size:36px;margin-bottom:10px;">✏️</div>
+                <div>উপরে শ্রেণি ও পরীক্ষা বেছে নিন</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ Tab: Student wise ══════════ -->
+      <div id="rsPanel_student" style="display:none;">
         <div class="card">
           <div class="card-header" style="flex-wrap:wrap;gap:10px;">
             <span class="card-title">👤 শিক্ষার্থীভিত্তিক রেজাল্ট শিট</span>
@@ -1710,14 +1750,13 @@
         </div>
       </div>
 
-      <!-- Tab: Class wise -->
+      <!-- ══════════ Tab: Class wise ══════════ -->
       <div id="rsPanel_class" style="display:none;">
         <div class="card">
           <div class="card-header" style="flex-wrap:wrap;gap:10px;">
             <span class="card-title">🏫 শ্রেণিভিত্তিক রেজাল্ট শিট</span>
           </div>
           <div class="card-body">
-            <!-- Step 1: শ্রেণি বেছে নিন -->
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
               <div>
                 <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">শ্রেণি *</label>
@@ -1735,9 +1774,30 @@
                 📋 শিট তৈরি করুন
               </button>
             </div>
-
-            <!-- Generated sheet preview -->
             <div id="rsClassSheetPreview"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ Tab: FINAL RESULT ══════════ -->
+      <div id="rsPanel_final" style="display:none;">
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+            <span class="card-title">🏆 চূড়ান্ত ফলাফল — অর্ধ + বার্ষিক গড়</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="finalCls" onchange="renderFinalResult()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+                <option value="">শ্রেণি বেছে নিন</option>
+              </select>
+              <button onclick="printFinalResult()" class="btn btn-accent" style="white-space:nowrap;">🖨️ প্রিন্ট করুন</button>
+            </div>
+          </div>
+          <div class="card-body" style="overflow-x:auto;">
+            <div id="finalResultTable">
+              <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div style="font-size:36px;margin-bottom:10px;">🏆</div>
+                <div>শ্রেণি বেছে নিন — অর্ধ-বার্ষিক ও বার্ষিকের গড় দেখাবে</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2874,7 +2934,7 @@ function showPage(id) {
   if(id==='remarks') renderRemarksApproval();
   if(id==='subjects') renderSubjectPage();
   if(id==='diary') { diaryPopulateFilters(); renderDiary(); }
-  if(id==='resultsheet') { rsPopulateFilters(); rsFilterStudents(); }
+  if(id==='resultsheet') { rsPopulateFilters(); bulkPopulateClasses(); finalPopulateClasses(); rsSwitchTab('bulk'); }
   // Close sidebar on mobile
   closeSidebar();
 }
@@ -10394,12 +10454,329 @@ function calcCombinedResult(studentId, examKey, subjects, marks) {
 }
 
 function rsSwitchTab(tab) {
-  document.getElementById('rsPanel_student').style.display = tab==='student' ? '' : 'none';
-  document.getElementById('rsPanel_class').style.display   = tab==='class'   ? '' : 'none';
-  var btnS = document.getElementById('rsTab_student');
-  var btnC = document.getElementById('rsTab_class');
-  if(btnS) { btnS.style.background = tab==='student'?'var(--primary)':'#fff'; btnS.style.color = tab==='student'?'#fff':'var(--text)'; btnS.style.borderColor = 'var(--primary)'; }
-  if(btnC) { btnC.style.background = tab==='class'?'var(--primary)':'#fff'; btnC.style.color = tab==='class'?'#fff':'var(--text)'; btnC.style.borderColor = tab==='class'?'var(--primary)':'var(--border)'; }
+  var tabs = ['bulk','student','class','final'];
+  tabs.forEach(function(t){
+    var panel = document.getElementById('rsPanel_'+t);
+    var btn   = document.getElementById('rsTab_'+t);
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+    if(btn) {
+      btn.style.background  = t===tab ? 'var(--primary)' : '#fff';
+      btn.style.color       = t===tab ? '#fff' : 'var(--text)';
+      btn.style.borderColor = t===tab ? 'var(--primary)' : 'var(--border)';
+    }
+  });
+  if(tab==='bulk')    { bulkPopulateClasses(); }
+  if(tab==='student') { rsPopulateFilters(); rsFilterStudents(); }
+  if(tab==='class')   { rsPopulateFilters(); }
+  if(tab==='final')   { finalPopulateClasses(); }
+}
+
+// ═══════════════════════════════════════════════════════
+// BULK MARK ENTRY — সব শিক্ষার্থী একসাথে
+// ═══════════════════════════════════════════════════════
+
+function bulkPopulateClasses() {
+  var classes = data.settings.classes||[];
+  ['bulkCls','finalCls'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    var cur = el.value;
+    el.innerHTML = '<option value="">শ্রেণি বেছে নিন</option>'
+      + classes.map(function(c){ return '<option value="'+c+'"'+(c===cur?' selected':'')+'>'+c+'</option>'; }).join('');
+  });
+}
+
+function bulkLoadTable() {
+  var cls  = (document.getElementById('bulkCls')||{}).value||'';
+  var exam = (document.getElementById('bulkExam')||{}).value||'';
+  var container = document.getElementById('bulkMarkTable');
+  if(!container) return;
+
+  if(!cls || !exam) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:36px;margin-bottom:10px;">✏️</div><div>শ্রেণি ও পরীক্ষা বেছে নিন</div></div>';
+    return;
+  }
+
+  var subjects = getSubjects(cls);
+  if(!subjects.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--danger);">এই শ্রেণিতে কোনো বিষয় নেই। আগে বিষয় যোগ করুন।</div>';
+    return;
+  }
+
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; })
+    .sort(function(a,b){ return (Number(a.roll)||999)-(Number(b.roll)||999); });
+
+  if(!students.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--text-muted);">এই শ্রেণিতে কোনো শিক্ষার্থী নেই।</div>';
+    return;
+  }
+
+  var examDef = EXAM_KEYS.find(function(e){ return e.key===exam; });
+  var isMT    = examDef && examDef.type==='mt';
+  var defMax  = isMT ? 20 : 80;
+
+  var html = '<div style="margin-bottom:10px;padding:10px 14px;background:var(--primary-ultra-light);border-radius:8px;font-size:13px;color:var(--primary);">'
+    +'<b>'+(examDef?examDef.label:exam)+'</b> — পূর্ণমান: <b>'+defMax+'</b>'
+    +((!isMT)?' <span style="opacity:.7;">(মডেল টেস্টের গড় ২০ মার্ক যোগ হয়ে মোট ১০০ হবে)</span>':'')
+    +'</div>'
+    +'<div style="overflow-x:auto;">'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:500px;">'
+    +'<thead><tr style="background:var(--primary);color:#fff;">'
+    +'<th style="padding:9px 10px;border:1px solid #aaa;text-align:center;white-space:nowrap;">রোল</th>'
+    +'<th style="padding:9px 10px;border:1px solid #aaa;text-align:left;">নাম</th>'
+    + subjects.map(function(s){
+        return '<th style="padding:9px 6px;border:1px solid #aaa;text-align:center;min-width:80px;">'+s+'<br><small style="font-weight:400;opacity:.75;">/'+defMax+'</small></th>';
+      }).join('')
+    +'<th style="padding:9px 10px;border:1px solid #aaa;text-align:center;white-space:nowrap;">মোট</th>'
+    +'<th style="padding:9px 10px;border:1px solid #aaa;text-align:center;white-space:nowrap;">মেধাস্থান</th>'
+    +'</tr></thead><tbody>';
+
+  students.forEach(function(s, si){
+    var er      = (data.examResults&&data.examResults[s.id])||{};
+    var marks   = er[exam]||{};
+    var rowBg   = si%2===0?'#fafafa':'#fff';
+
+    html += '<tr style="background:'+rowBg+';" id="bulkRow_'+s.id+'">'
+      +'<td style="padding:7px 10px;border:1px solid #ddd;text-align:center;font-weight:700;">'+( s.roll||'—')+'</td>'
+      +'<td style="padding:7px 10px;border:1px solid #ddd;font-weight:600;">'+s.name+'</td>'
+      + subjects.map(function(sub){
+          var safeId = 'bme_'+s.id+'_'+sub.replace(/[^\w]/g,'_');
+          var val    = marks[sub]!==undefined ? marks[sub] : '';
+          return '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center;">'
+            +'<input type="number" min="0" max="'+defMax+'" value="'+val+'" id="'+safeId+'" '
+            +'oninput="bulkRecalcRow(\''+s.id+'\',\''+exam+'\')" '
+            +'style="width:72px;padding:5px 4px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;text-align:center;">'
+            +'</td>';
+        }).join('')
+      +'<td style="padding:7px 10px;border:1px solid #ddd;text-align:center;font-weight:700;color:var(--primary);" id="bulkTotal_'+s.id+'">—</td>'
+      +'<td style="padding:7px 10px;border:1px solid #ddd;text-align:center;" id="bulkRank_'+s.id+'">—</td>'
+      +'</tr>';
+  });
+
+  html += '</tbody></table></div>'
+    +'<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">'
+    +'<button onclick="bulkSaveAll()" class="btn btn-primary">💾 সব সেভ করুন</button>'
+    +'<button onclick="bulkRecalcAllRanks()" class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);">🔄 মেধাক্রম আপডেট</button>'
+    +'</div>';
+
+  container.innerHTML = html;
+
+  // Initial rank calc
+  students.forEach(function(s){ bulkRecalcRow(s.id, exam); });
+  bulkRecalcAllRanks();
+}
+
+function bulkRecalcRow(studentId, examKey) {
+  var cls      = (document.getElementById('bulkCls')||{}).value||'';
+  var subjects = getSubjects(cls);
+  var total    = 0;
+  subjects.forEach(function(sub){
+    var el = document.getElementById('bme_'+studentId+'_'+sub.replace(/[^\w]/g,'_'));
+    if(el && el.value!=='') total += Number(el.value)||0;
+  });
+  var totalEl = document.getElementById('bulkTotal_'+studentId);
+  if(totalEl) totalEl.textContent = total > 0 ? total : '—';
+  bulkRecalcAllRanks();
+}
+
+function bulkRecalcAllRanks() {
+  var cls      = (document.getElementById('bulkCls')||{}).value||'';
+  var subjects = getSubjects(cls);
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; });
+
+  var scores = students.map(function(s){
+    var total = 0, hasAny = false;
+    subjects.forEach(function(sub){
+      var el = document.getElementById('bme_'+s.id+'_'+sub.replace(/[^\w]/g,'_'));
+      if(el && el.value!=='') { total += Number(el.value)||0; hasAny=true; }
+    });
+    return { id: s.id, total: hasAny?total:-1 };
+  }).filter(function(x){ return x.total>=0; })
+    .sort(function(a,b){ return b.total-a.total; });
+
+  var rankMap = {};
+  scores.forEach(function(sc,i){ rankMap[sc.id] = i+1; });
+
+  students.forEach(function(s){
+    var el = document.getElementById('bulkRank_'+s.id);
+    if(!el) return;
+    if(rankMap[s.id]) {
+      var r = rankMap[s.id];
+      var medal = r===1?'🥇 ':r===2?'🥈 ':r===3?'🥉 ':'';
+      el.innerHTML = '<b style="color:var(--primary);">'+medal+r+'</b>';
+    } else {
+      el.textContent = '—';
+    }
+  });
+}
+
+function bulkSaveAll() {
+  var cls  = (document.getElementById('bulkCls')||{}).value||'';
+  var exam = (document.getElementById('bulkExam')||{}).value||'';
+  if(!cls || !exam) { toast('শ্রেণি ও পরীক্ষা বেছে নিন।','error'); return; }
+
+  var subjects = getSubjects(cls);
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; });
+  if(!data.examResults) data.examResults = {};
+
+  var saved = 0;
+  students.forEach(function(s){
+    var marks = {};
+    subjects.forEach(function(sub){
+      var el = document.getElementById('bme_'+s.id+'_'+sub.replace(/[^\w]/g,'_'));
+      if(el && el.value!=='') marks[sub] = Number(el.value);
+    });
+    if(Object.keys(marks).length > 0) {
+      if(!data.examResults[s.id]) data.examResults[s.id] = {};
+      data.examResults[s.id][exam] = marks;
+      saved++;
+    }
+  });
+
+  save('examResults');
+  toast('✅ '+saved+' জন শিক্ষার্থীর মার্ক সেভ হয়েছে!');
+  bulkRecalcAllRanks();
+}
+
+// ═══════════════════════════════════════════════════════
+// FINAL RESULT — অর্ধ + বার্ষিক গড়
+// ═══════════════════════════════════════════════════════
+
+function finalPopulateClasses() {
+  var classes = data.settings.classes||[];
+  var el = document.getElementById('finalCls');
+  if(!el) return;
+  el.innerHTML = '<option value="">শ্রেণি বেছে নিন</option>'
+    + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+
+function renderFinalResult() {
+  var cls = (document.getElementById('finalCls')||{}).value||'';
+  var container = document.getElementById('finalResultTable');
+  if(!container) return;
+
+  if(!cls) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:36px;margin-bottom:10px;">🏆</div><div>শ্রেণি বেছে নিন</div></div>';
+    return;
+  }
+
+  var subjects = getSubjects(cls);
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; })
+    .sort(function(a,b){ return (Number(a.roll)||999)-(Number(b.roll)||999); });
+
+  if(!students.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--text-muted);">এই শ্রেণিতে কোনো শিক্ষার্থী নেই।</div>';
+    return;
+  }
+
+  // Calculate half + annual totals for each student
+  var results = students.map(function(s){
+    var halfData   = rsGetStudentExamTotal(s.id, 'half',   subjects);
+    var annualData = rsGetStudentExamTotal(s.id, 'annual', subjects);
+    var halfPct    = halfData   ? halfData.pct   : null;
+    var annualPct  = annualData ? annualData.pct : null;
+    var finalPct   = (halfPct!==null && annualPct!==null) ? Math.round((halfPct+annualPct)/2)
+                   : (halfPct!==null ? halfPct : (annualPct!==null ? annualPct : null));
+    return {
+      student:    s,
+      halfObt:    halfData   ? halfData.obt   : null,
+      halfMax:    halfData   ? halfData.max   : null,
+      halfPct:    halfPct,
+      annualObt:  annualData ? annualData.obt : null,
+      annualMax:  annualData ? annualData.max : null,
+      annualPct:  annualPct,
+      finalPct:   finalPct,
+      finalGPA:   finalPct!==null ? calcGPA(finalPct) : null
+    };
+  });
+
+  // Sort by finalPct for rank
+  var ranked = results.filter(function(r){ return r.finalPct!==null; })
+    .sort(function(a,b){ return b.finalPct-a.finalPct; });
+  var rankMap = {};
+  ranked.forEach(function(r,i){ rankMap[r.student.id] = i+1; });
+
+  var instName = (data.settings&&data.settings.name)||'মাদ্রাসা';
+
+  var html = '<div id="finalPrintArea">'
+    +'<div style="text-align:center;margin-bottom:16px;">'
+    +'<div style="font-size:17px;font-weight:800;color:var(--primary);">'+instName+'</div>'
+    +'<div style="font-size:14px;font-weight:700;margin-top:4px;">চূড়ান্ত ফলাফল — শ্রেণি: '+cls+'</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">অর্ধ-বার্ষিক ও বার্ষিক পরীক্ষার গড়</div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px;">'
+    +'<thead>'
+    +'<tr style="background:var(--primary);color:#fff;">'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">মেধাস্থান</th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">রোল</th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:left;">নাম</th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">অর্ধ-বার্ষিক<br><small style="font-weight:400;">প্রাপ্ত / %</small></th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">বার্ষিক<br><small style="font-weight:400;">প্রাপ্ত / %</small></th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">চূড়ান্ত %</th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">GPA</th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">গ্রেড</th>'
+    +'<th style="padding:9px 10px;border:1px solid #888;text-align:center;">উত্তীর্ণ?</th>'
+    +'</tr></thead><tbody>';
+
+  results.forEach(function(r, si){
+    var rank    = rankMap[r.student.id] || null;
+    var medal   = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+    var bg      = si%2===0?'#fafafa':'#fff';
+    var passed  = r.finalPct!==null && r.finalPct>=33;
+    var pctColor= r.finalPct===null?'#aaa':r.finalPct<33?'var(--danger)':r.finalPct<50?'#e67e22':'var(--primary)';
+
+    html += '<tr style="background:'+bg+';">'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:16px;">'+(rank ? medal+(rank) : '—')+'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">'+(r.student.roll||'—')+'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;font-weight:600;">'+r.student.name+'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">'
+        +(r.halfObt!==null ? '<b>'+r.halfObt+'</b>/'+r.halfMax+'<br><span style="font-size:11px;color:#555;">'+r.halfPct+'%</span>' : '<span style="color:#aaa;">—</span>')
+      +'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">'
+        +(r.annualObt!==null ? '<b>'+r.annualObt+'</b>/'+r.annualMax+'<br><span style="font-size:11px;color:#555;">'+r.annualPct+'%</span>' : '<span style="color:#aaa;">—</span>')
+      +'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;font-weight:700;color:'+pctColor+';font-size:15px;">'+(r.finalPct!==null?r.finalPct+'%':'—')+'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;font-weight:700;">'+(r.finalGPA?r.finalGPA.gpa.toFixed(2):'—')+'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">'
+        +(r.finalGPA?'<span style="font-weight:700;font-size:15px;">'+r.finalGPA.grade+'</span>':'—')
+      +'</td>'
+      +'<td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">'
+        +(r.finalPct===null?'—':passed
+          ?'<span style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">✅ উত্তীর্ণ</span>'
+          :'<span style="background:#fdecea;color:#c0392b;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">❌ অকৃতকার্য</span>')
+      +'</td>'
+    +'</tr>';
+  });
+
+  html += '</tbody></table>'
+    +'<div style="margin-top:40px;display:flex;justify-content:space-between;padding-top:20px;">'
+    +'<div style="text-align:center;width:180px;border-top:1px solid #333;padding-top:6px;font-size:12px;">শ্রেণি শিক্ষক</div>'
+    +'<div style="text-align:center;width:180px;border-top:1px solid #333;padding-top:6px;font-size:12px;">পরীক্ষা নিয়ন্ত্রক</div>'
+    +'<div style="text-align:center;width:180px;border-top:1px solid #333;padding-top:6px;font-size:12px;">প্রধান শিক্ষক</div>'
+    +'</div>'
+  +'</div>';
+
+  container.innerHTML = html;
+}
+
+function printFinalResult() {
+  var area = document.getElementById('finalPrintArea');
+  if(!area) { toast('আগে শ্রেণি বেছে শিট তৈরি করুন।','error'); return; }
+  var cls = (document.getElementById('finalCls')||{}).value||'';
+  var w = window.open('','_blank');
+  w.document.write('<html><head><meta charset="UTF-8">'
+    +'<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap" rel="stylesheet">'
+    +'<style>'
+    +'body{font-family:"Noto Sans Bengali",sans-serif;padding:16px;font-size:12px;}'
+    +'table{width:100%;border-collapse:collapse;}'
+    +'th,td{border:1px solid #999;padding:6px 8px;}'
+    +'@media print{@page{size:landscape;margin:10mm;}button{display:none;}}'
+    +'</style>'
+    +'<title>চূড়ান্ত ফলাফল — '+cls+'</title></head><body>'
+    + area.innerHTML
+    +'</body></html>');
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 600);
 }
 
 function rsPopulateFilters() {
@@ -11298,6 +11675,8 @@ var _fns = {
   openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects, diaryPopulateFilters,
   openResultSheet, openMarkEntry, saveMarkEntry, printResultSheetModal,
   rsFilterStudents, rsPopulateFilters, rsSwitchTab, rsClsLoadExams, rsGenerateClassSheet, printClassSheet,
+  bulkPopulateClasses, bulkLoadTable, bulkSaveAll, bulkRecalcRow, bulkRecalcAllRanks,
+  finalPopulateClasses, renderFinalResult, printFinalResult,
   setExamMaxMarkAndRefresh,
   waSetFilter, waOpenAll, waSelectTpl, waQuickSearch, waQuickPick,
 };
