@@ -337,18 +337,110 @@
   .qpaper-q span { font-weight:700; margin-right:4px; }
 
   /* Responsive */
+  /* Mobile sidebar overlay */
+  #sidebarOverlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+    z-index:99; cursor:pointer;
+  }
+  #sidebarOverlay.active { display:block; }
+
   @media(max-width:768px) {
     :root { --sidebar-width:0px; }
-    #sidebar { transform:translateX(-260px); width:260px; }
-    #sidebar.open { transform:translateX(0); }
+    #sidebar { transform:translateX(-260px); width:260px; z-index:200; }
+    #sidebar.open { transform:translateX(0); box-shadow:4px 0 24px rgba(0,0,0,0.4); }
     #main { margin-left:0; }
     .stats-grid { grid-template-columns:1fr 1fr; }
     .finance-summary { grid-template-columns:1fr; }
     .dashboard-grid { grid-template-columns:1fr; }
-    #content { padding:16px; }
+    #content { padding:10px; }
     .perm-main-grid { grid-template-columns:1fr !important; }
+
+    /* Tables — scroll on mobile */
+    .table-wrap, table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    table { width:max-content; min-width:100%; }
+    th, td { white-space:nowrap; font-size:12px; padding:6px 8px; }
+
+    /* Cards */
+    .card-header { padding:12px 14px 10px; gap:8px; }
+    .card-body { padding:12px; }
+    .card-title { font-size:14px; }
+
+    /* Modals */
+    .modal { width:95vw !important; max-width:95vw !important; margin:10px auto; border-radius:12px; }
+    .modal-body { padding:14px; }
+
+    /* Forms */
+    .form-row { grid-template-columns:1fr !important; }
+    input, select, textarea { font-size:14px !important; }
+
+    /* Holiday grid — stack on mobile */
+    [style*="grid-template-columns:1fr 1fr 1fr auto"] {
+      grid-template-columns:1fr !important;
+    }
+    [style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns:1fr !important;
+    }
+
+    /* Buttons */
+    .btn { padding:8px 14px; font-size:13px; }
+    .btn-group { flex-wrap:wrap; }
+
+    /* Filter bar */
+    .filter-bar { flex-direction:column; align-items:stretch; }
+    .filter-bar input, .filter-bar select { width:100%; }
+
+    /* Search input */
+    .search-input { min-width:0; width:100%; }
+
+    /* Stats grid */
+    .stats-grid { gap:8px; }
+    .stat-card { padding:12px; }
+    .stat-number { font-size:22px; }
+
+    /* Nav header */
+    .header { padding:10px 14px; }
+    .header-btn { padding:6px 10px; font-size:12px; }
+
+    /* Page title */
+    #pageTitle { font-size:14px; }
+
+    /* Tabs */
+    .tabs { gap:2px; }
+    .tab-btn { padding:7px 10px; font-size:12px; }
+
+    /* Permission grid */
+    #permMainGrid { grid-template-columns:1fr !important; }
+
+    /* Result sheet table */
+    #resultSheetBody table,
+    #rsClassSheetPreview table { font-size:11px; }
+    #resultSheetBody th, #resultSheetBody td,
+    #rsClassSheetPreview th, #rsClassSheetPreview td { padding:4px 6px; }
+
+    /* Dashboard widget canvas — scroll on mobile */
+    #dashWidgetContainer { overflow-x:auto; overflow-y:visible; }
+
+    /* WhatsApp widget */
+    .wa-flt-btn { font-size:10px; padding:3px 7px; }
   }
-  /* Draggable class chips */
+
+  @media(max-width:480px) {
+    .stats-grid { grid-template-columns:1fr 1fr; gap:6px; }
+    #content { padding:8px; }
+    .card-header { flex-direction:column; align-items:flex-start; }
+    .card-header > div { width:100%; }
+    .card-header select, .card-header input { width:100%; max-width:100%; }
+    .modal { width:98vw !important; }
+    th, td { font-size:11px; padding:5px 6px; }
+    .btn { padding:7px 10px; font-size:12px; }
+    /* Hostel grid */
+    [style*="grid-template-columns:1fr 1fr"]:not(.stats-grid) { grid-template-columns:1fr !important; }
+  }
+  .holiday-grid { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:end; }
+  @media(max-width:600px) {
+    .holiday-grid { grid-template-columns:1fr 1fr; }
+    .holiday-grid > *:last-child { grid-column:1/-1; }
+  }
   #classList { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:4px; min-height:42px; padding:8px; border:2px dashed var(--border); border-radius:10px; background:#fafafa; }
   .cls-chip { background:var(--primary-ultra-light); border:1.5px solid var(--primary); border-radius:20px; padding:5px 10px 5px 8px; font-size:12px; font-weight:700; color:var(--primary); display:inline-flex; align-items:center; gap:5px; cursor:grab; user-select:none; transition:.15s; }
   .cls-chip:hover { box-shadow:0 2px 8px rgba(45,122,79,.2); }
@@ -555,7 +647,7 @@
     <div class="header-date" id="headerDate"></div>
     <button class="header-btn" onclick="window.print()">🖨️ প্রিন্ট</button>
     <button class="header-btn accent" onclick="exportData()">💾 ব্যাকআপ</button>
-    <button class="header-btn btn-outline" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none" id="menuBtn">☰</button>
+    <button class="header-btn btn-outline" onclick="toggleSidebar()" style="display:none" id="menuBtn">☰</button>
   </div>
   <div id="content">
 
@@ -654,6 +746,7 @@
               <option value="all">সব (সক্রিয় + আর্কাইভ)</option>
             </select>
             <button class="btn btn-outline btn-sm" onclick="printStudentList()">🖨️ তালিকা প্রিন্ট</button>
+            <button class="btn btn-outline btn-sm" onclick="openStudentCSVExport()" style="border-color:#0891b2;color:#0891b2;">⬇️ CSV ডাউনলোড</button>
           </div>
           <div class="table-wrap"><table id="studentsTable">
             <thead><tr><th>রোল</th><th>কোড</th><th>নাম</th><th>পিতার নাম</th><th>শ্রেণি</th><th>মোবাইল</th><th>মাসিক বেতন</th><th>বকেয়া</th><th>অ্যাকশন</th></tr></thead>
@@ -1472,7 +1565,7 @@
           <div class="card-title mb-16" style="margin-bottom:12px;">🗓️ ছুটির তালিকা (অফ-ডে)</div>
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">শুক্রবার ও শনি-বৃহঃ অফ ডে স্বয়ংক্রিয়। নিচে বিশেষ ছুটি (সরকারি/মাদ্রাসার) যোগ করুন।</div>
           <div id="holidayList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:250px;overflow-y:auto;"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;" class="holiday-grid">
             <div><label style="font-size:12px;font-weight:600;">ছুটির তারিখ</label><input id="newHolidayDate" type="date" style="width:100%;"></div>
             <div><label style="font-size:12px;font-weight:600;">শেষ তারিখ (range হলে)</label><input id="newHolidayEnd" type="date" style="width:100%;"></div>
             <div><label style="font-size:12px;font-weight:600;">কারণ</label><input id="newHolidayName" type="text" placeholder="যেমন: ঈদুল ফিতর" style="width:100%;"></div>
@@ -1699,7 +1792,7 @@
 
 <!-- RESULT SHEET MODAL (per student) -->
 <div id="resultSheetModal" class="modal-overlay">
-  <div class="modal" style="max-width:860px;width:95vw;">
+  <div class="modal" style="max-width:860px;width:95vw;max-height:90vh;overflow-y:auto;">
     <div class="modal-header">
       <span class="modal-title" id="rsModalTitle">📊 রেজাল্ট শিট</span>
       <div style="display:flex;gap:6px;">
@@ -1710,6 +1803,31 @@
     <div class="modal-body" id="resultSheetBody" style="overflow-x:auto;"></div>
   </div>
 </div>
+<!-- CSV Export Modal -->
+<div id="csvExportModal" class="modal-overlay">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <span class="modal-title">⬇️ শিক্ষার্থী তালিকা CSV ডাউনলোড</span>
+      <button class="modal-close" onclick="closeModal('csvExportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">যে কলামগুলো CSV এ চান সেগুলো টিক দিন। বর্তমান filter (শ্রেণি/সার্চ) অনুযায়ী data যাবে।</p>
+
+      <!-- Quick select -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <button onclick="csvSelectAll(true)"  style="padding:4px 12px;border:1px solid var(--primary);border-radius:20px;background:var(--primary-ultra-light);color:var(--primary);font-size:12px;cursor:pointer;font-family:inherit;">✅ সব নির্বাচন</button>
+        <button onclick="csvSelectAll(false)" style="padding:4px 12px;border:1px solid var(--border);border-radius:20px;background:#f5f5f5;color:var(--text);font-size:12px;cursor:pointer;font-family:inherit;">☐ সব বাতিল</button>
+      </div>
+
+      <!-- Column checkboxes -->
+      <div id="csvColGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;"></div>
+
+      <!-- Download button -->
+      <button onclick="downloadStudentCSV()" class="btn btn-primary" style="width:100%;">⬇️ CSV ডাউনলোড করুন</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add Student Modal -->
 <div id="addStudentModal" class="modal-overlay">
   <div class="modal">
@@ -2699,6 +2817,25 @@ function toast(msg, type='success') {
   setTimeout(()=>{ el.style.animation='slideOut 0.3s ease forwards'; setTimeout(()=>el.remove(),300); }, 2800);
 }
 
+function toggleSidebar() {
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sidebarOverlay');
+  var isOpen = sb.classList.contains('open');
+  if(isOpen) {
+    sb.classList.remove('open');
+    if(ov) ov.classList.remove('active');
+  } else {
+    sb.classList.add('open');
+    if(ov) ov.classList.add('active');
+  }
+}
+function closeSidebar() {
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sidebarOverlay');
+  if(sb) sb.classList.remove('open');
+  if(ov) ov.classList.remove('active');
+}
+
 // ===================== NAVIGATION =====================
 var pageTitles = {
   dashboard:'ড্যাশবোর্ড', students:'শিক্ষার্থী ব্যবস্থাপনা', attendance:'উপস্থিতি',
@@ -2739,7 +2876,7 @@ function showPage(id) {
   if(id==='diary') { diaryPopulateFilters(); renderDiary(); }
   if(id==='resultsheet') { rsPopulateFilters(); rsFilterStudents(); }
   // Close sidebar on mobile
-  document.getElementById('sidebar').classList.remove('open');
+  closeSidebar();
 }
 
 // ===================== MODALS =====================
@@ -5512,6 +5649,126 @@ function exportData() {
 }
 
 // ===================== PRINT FUNCTIONS =====================
+// ===================== CSV EXPORT =====================
+var CSV_COLS = [
+  { key:'roll',        label:'রোল নম্বর' },
+  { key:'name',        label:'নাম (বাংলা)' },
+  { key:'nameEn',      label:'Name (English)' },
+  { key:'code',        label:'স্টুডেন্ট আইডি' },
+  { key:'cls',         label:'শ্রেণি' },
+  { key:'branch',      label:'বিভাগ' },
+  { key:'father',      label:'পিতার নাম' },
+  { key:'fatherEn',    label:"Father's Name" },
+  { key:'mother',      label:'মাতার নাম' },
+  { key:'motherEn',    label:"Mother's Name" },
+  { key:'mobile',      label:'মোবাইল নম্বর' },
+  { key:'fatherMobile',label:'পিতার মোবাইল' },
+  { key:'motherMobile',label:'মাতার মোবাইল' },
+  { key:'dob',         label:'জন্ম তারিখ' },
+  { key:'gender',      label:'লিঙ্গ' },
+  { key:'blood',       label:'রক্তের গ্রুপ' },
+  { key:'address',     label:'ঠিকানা' },
+  { key:'fatherNID',   label:'পিতার NID' },
+  { key:'motherNID',   label:'মাতার NID' },
+  { key:'admDate',     label:'ভর্তি তারিখ' },
+  { key:'fee',         label:'মাসিক বেতন' },
+  { key:'status',      label:'অবস্থা' },
+];
+
+// Default checked columns
+var CSV_DEFAULT = ['roll','name','code','cls','father','mobile','fatherMobile','admDate'];
+
+function openStudentCSVExport() {
+  var grid = document.getElementById('csvColGrid');
+  if(!grid) return;
+  grid.innerHTML = CSV_COLS.map(function(col){
+    var checked = CSV_DEFAULT.indexOf(col.key) > -1;
+    return '<label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;background:#fafafa;">'
+      +'<input type="checkbox" class="csv-col-chk" value="'+col.key+'" '+(checked?'checked':'')+' style="cursor:pointer;width:15px;height:15px;">'
+      +'<span>'+col.label+'</span>'
+    +'</label>';
+  }).join('');
+  openModal('csvExportModal');
+}
+
+function csvSelectAll(val) {
+  document.querySelectorAll('.csv-col-chk').forEach(function(cb){ cb.checked = val; });
+}
+
+function downloadStudentCSV() {
+  // কোন columns selected?
+  var selectedKeys = [];
+  document.querySelectorAll('.csv-col-chk:checked').forEach(function(cb){ selectedKeys.push(cb.value); });
+  if(!selectedKeys.length) { toast('কমপক্ষে একটি কলাম নির্বাচন করুন।','error'); return; }
+
+  // বর্তমান filter অনুযায়ী students
+  var cls = (document.getElementById('studentClassFilter')||{}).value||'';
+  var q   = ((document.getElementById('studentSearch')||{}).value||'').toLowerCase();
+  var arc = (document.getElementById('studentArchivedFilter')||{}).value||'active';
+  var students = (data.students||[]).filter(function(s){
+    if(arc==='active'   && s.status==='archived') return false;
+    if(arc==='archived' && s.status!=='archived')  return false;
+    if(cls && s.cls!==cls) return false;
+    if(q && !(s.name||'').toLowerCase().includes(q) && !(String(s.roll||'')).includes(q)) return false;
+    return true;
+  }).sort(function(a,b){ return (Number(a.roll)||9999)-(Number(b.roll)||9999); });
+
+  if(!students.length) { toast('কোনো শিক্ষার্থী পাওয়া যায়নি।','error'); return; }
+
+  // Column label → header row
+  var colMap = {};
+  CSV_COLS.forEach(function(c){ colMap[c.key]=c.label; });
+  var headers = selectedKeys.map(function(k){ return colMap[k]||k; });
+
+  // Data rows
+  var rows = students.map(function(s){
+    return selectedKeys.map(function(key){
+      var val = '';
+      switch(key) {
+        case 'roll':         val = s.roll||''; break;
+        case 'name':         val = s.name||''; break;
+        case 'nameEn':       val = s.nameEn||''; break;
+        case 'code':         val = s.code||''; break;
+        case 'cls':          val = s.cls||''; break;
+        case 'branch':       val = s.branch||''; break;
+        case 'father':       val = s.father||''; break;
+        case 'fatherEn':     val = s.fatherEn||''; break;
+        case 'mother':       val = s.mother||''; break;
+        case 'motherEn':     val = s.motherEn||''; break;
+        case 'mobile':       val = s.mobile||''; break;
+        case 'fatherMobile': val = s.fatherMobile||''; break;
+        case 'motherMobile': val = s.motherMobile||''; break;
+        case 'dob':          val = s.dob||''; break;
+        case 'gender':       val = s.gender||''; break;
+        case 'blood':        val = s.blood||''; break;
+        case 'address':      val = s.address||''; break;
+        case 'fatherNID':    val = s.fatherNID||''; break;
+        case 'motherNID':    val = s.motherNID||''; break;
+        case 'admDate':      val = s.admDate||''; break;
+        case 'fee':          val = s.fee||''; break;
+        case 'status':       val = s.status==='archived'?'আর্কাইভ':'সক্রিয়'; break;
+      }
+      // CSV safe: quote করো যদি comma বা newline থাকে
+      val = String(val).replace(/"/g,'""');
+      if(val.includes(',') || val.includes('\n') || val.includes('"')) val = '"'+val+'"';
+      return val;
+    }).join(',');
+  });
+
+  // BOM for Bengali UTF-8 in Excel
+  var csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var clsLabel = cls || 'সব-শ্রেণি';
+  a.href     = url;
+  a.download = 'শিক্ষার্থী_'+clsLabel+'_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  closeModal('csvExportModal');
+  toast('✅ CSV ডাউনলোড হচ্ছে — '+students.length+' জন শিক্ষার্থী');
+}
+
 function printStudentList() {
   const rows = document.getElementById('studentsBody').innerHTML;
   const w = window.open('','_blank');
@@ -10622,7 +10879,7 @@ function openMarkEntry(studentId, examKey) {
   var m = document.createElement('div');
   m.className = 'modal-overlay open';
   m.id = 'markEntryModal';
-  m.innerHTML = '<div class="modal" style="max-width:460px;">'
+  m.innerHTML = '<div class="modal" style="max-width:460px;width:95vw;">'
     +'<div class="modal-header">'
       +'<span class="modal-title">✏️ '+exam.label+' — '+student.name+'</span>'
       +'<button class="modal-close" onclick="document.getElementById(\'markEntryModal\').remove()">✕</button>'
@@ -10953,7 +11210,7 @@ function init() {
   // Data migration: cls field trim করো (space problem fix)
   var clsFixed = false;
   data.students.forEach(function(s){ if(s.cls && s.cls !== s.cls.trim()) { s.cls = s.cls.trim(); clsFixed = true; } });
-  if(clsFixed) save('students');
+  if(clsFixed && db) save('students'); // db ready হলেই save
 
   const now = new Date();
   document.getElementById('headerDate').textContent = now.toLocaleDateString('bn-BD',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -11036,6 +11293,7 @@ var _fns = {
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
+  openStudentCSVExport, csvSelectAll, downloadStudentCSV,
   addSubject, removeSubject, renderSubjectPerClass, renderSubjectPage,
   openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects, diaryPopulateFilters,
   openResultSheet, openMarkEntry, saveMarkEntry, printResultSheetModal,
