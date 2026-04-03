@@ -5854,23 +5854,130 @@ function downloadStudentCSV() {
   toast('✅ CSV ডাউনলোড হচ্ছে — '+students.length+' জন শিক্ষার্থী');
 }
 
-function printStudentList() {
-  const rows = document.getElementById('studentsBody').innerHTML;
-  const w = window.open('','_blank');
-  w.document.write(`<html><head><meta charset="UTF-8"><style>
-    body{font-family:'Noto Sans Bengali',sans-serif;padding:20px;}
-    .header{text-align:center;margin-bottom:20px;border-bottom:3px double #1a4a2e;padding-bottom:10px;}
-    h2{color:#1a4a2e;font-size:20px;margin:0;} p{color:#666;font-size:12px;}
-    table{width:100%;border-collapse:collapse;font-size:12px;}
-    th{background:#1a4a2e;color:#fff;padding:8px;} td{border:1px solid #ccc;padding:7px;}
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap');
-  </style></head><body>
-    <div class="header"><h2>🕌 ${data.settings.name||'মাদ্রাসা'}</h2><p>${data.settings.address||''}</p><p style="font-size:14px;font-weight:bold;margin-top:6px;">শিক্ষার্থীদের তালিকা</p></div>
-    <table><thead><tr><th>রোল</th><th>নাম</th><th>পিতার নাম</th><th>শ্রেণি</th><th>বিভাগ</th><th>মোবাইল</th><th>ভর্তি তারিখ</th></tr></thead>
-    <tbody>${rows.replace(/<button[^>]*>.*?<\/button>/g,'')}</tbody></table>
-    <p style="margin-top:20px;text-align:right;font-size:11px;">প্রধান শিক্ষক: ${data.settings.principal||'_______________'}</p>
+// ===================== PRINT HELPER =====================
+function printHTML(title, subtitle, bodyHTML, opts) {
+  opts = opts || {};
+  var s = data.settings||{};
+  var instName = s.name || 'মাদ্রাসা';
+  var instSub  = s.sub  || '';
+  var instAddr = s.address || '';
+  var principal= s.principal || '';
+  var isLandscape = opts.landscape || false;
+  var noCopy      = opts.noCopy    || false;  // fee/payroll এ duplicate slip
+
+  var printCSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    @page{size:A4 ${isLandscape?'landscape':'portrait'};margin:15mm 12mm 15mm 12mm;}
+    body{font-family:'Noto Sans Bengali',sans-serif;font-size:12px;color:#111;background:#fff;}
+    .print-page{width:100%;}
+    .print-header{text-align:center;border-bottom:3px double #1a4a2e;padding-bottom:10px;margin-bottom:14px;}
+    .inst-name{font-family:'Noto Serif Bengali',serif;font-size:18px;font-weight:700;color:#1a4a2e;}
+    .inst-sub{font-size:11px;color:#555;margin-top:2px;}
+    .inst-addr{font-size:10px;color:#777;margin-top:2px;}
+    .print-title{font-size:14px;font-weight:700;color:#1a4a2e;margin-top:8px;border:1px solid #1a4a2e;display:inline-block;padding:3px 16px;border-radius:4px;}
+    .print-body{margin-top:14px;}
+    table{width:100%;border-collapse:collapse;font-size:11px;}
+    th{background:#1a4a2e;color:#fff;padding:7px 8px;text-align:left;border:1px solid #0f2818;}
+    td{border:1px solid #ccc;padding:6px 8px;}
+    tr:nth-child(even) td{background:#f8f8f8;}
+    .print-footer{margin-top:20px;display:flex;justify-content:space-between;font-size:11px;color:#555;border-top:1px solid #ddd;padding-top:8px;}
+    .sig-line{border-top:1px solid #333;width:150px;text-align:center;padding-top:4px;font-size:10px;}
+    .cut-line{border-top:2px dashed #aaa;margin:16px 0;text-align:center;font-size:10px;color:#999;position:relative;}
+    .cut-line span{background:#fff;padding:0 8px;}
+    @media print{button,input,select,.no-print{display:none!important;}.print-page{page-break-inside:avoid;}}
+  `;
+
+  var headerHTML = `
+    <div class="print-header">
+      <div class="inst-name">${instName}</div>
+      ${instSub?'<div class="inst-sub">'+instSub+'</div>':''}
+      ${instAddr?'<div class="inst-addr">'+instAddr+'</div>':''}
+      <div class="print-title">${title}${subtitle?' — '+subtitle:''}</div>
+    </div>
+  `;
+
+  var footerHTML = `
+    <div class="print-footer">
+      <div>তারিখ: ${new Date().toLocaleDateString('bn-BD')}</div>
+      <div class="sig-line">${principal?principal:'প্রধান শিক্ষক'}<br>স্বাক্ষর ও সীলমোহর</div>
+    </div>
+  `;
+
+  var fullBody = noCopy
+    ? headerHTML + '<div class="print-body">' + bodyHTML + '</div>' + footerHTML
+    : headerHTML + '<div class="print-body">' + bodyHTML + '</div>' + footerHTML;
+
+  var w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><title>${instName} — ${title}</title><style>${printCSS}</style></head><body>${fullBody}</body></html>`);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 800);
+}
+
+// Payroll/Fee dual-slip helper (A4 landscape, 2 copies)
+function printDualSlip(title, slipHTML) {
+  var s = data.settings||{};
+  var instName = s.name||'মাদ্রাসা';
+  var css = `
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    @page{size:A4 landscape;margin:10mm;}
+    body{font-family:'Noto Sans Bengali',sans-serif;font-size:12px;}
+    .dual-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;height:185mm;}
+    .slip{border:1px solid #333;padding:14px;position:relative;}
+    .slip:first-child{border-right:none;}
+    .slip-header{text-align:center;border-bottom:2px solid #1a4a2e;padding-bottom:8px;margin-bottom:10px;}
+    .slip-inst{font-size:14px;font-weight:700;color:#1a4a2e;}
+    .slip-title{font-size:12px;font-weight:700;margin-top:4px;color:#333;}
+    .slip-copy{font-size:10px;color:#888;margin-top:2px;}
+    .slip-body table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+    .slip-body td{padding:5px 6px;border-bottom:1px solid #eee;}
+    .slip-body td:first-child{font-weight:600;color:#444;width:45%;}
+    .slip-footer{margin-top:12px;display:flex;justify-content:space-between;font-size:10px;border-top:1px solid #ddd;padding-top:8px;}
+    .sig{border-top:1px solid #333;text-align:center;padding-top:3px;font-size:10px;width:110px;}
+    .cut{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;color:#aaa;font-size:10px;border-left:1px solid #333;border-right:1px solid #333;}
+    .cut::before,.cut::after{content:'';flex:1;border-top:1px dashed #bbb;}
+    @media print{@page{size:A4 landscape;margin:10mm;}}
+  `;
+  var w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><title>${instName} — ${title}</title><style>${css}</style></head><body>
+    <div class="dual-wrap">
+      <div class="slip">
+        <div class="slip-header"><div class="slip-inst">${instName}</div><div class="slip-title">${title}</div><div class="slip-copy">অফিস কপি</div></div>
+        <div class="slip-body">${slipHTML}</div>
+        <div class="slip-footer"><div>তারিখ: ${new Date().toLocaleDateString('bn-BD')}</div><div class="sig">কর্তৃপক্ষের স্বাক্ষর</div></div>
+      </div>
+      <div class="cut">✂ এখান থেকে কাটুন</div>
+      <div class="slip">
+        <div class="slip-header"><div class="slip-inst">${instName}</div><div class="slip-title">${title}</div><div class="slip-copy">ব্যক্তিগত কপি</div></div>
+        <div class="slip-body">${slipHTML}</div>
+        <div class="slip-footer"><div>তারিখ: ${new Date().toLocaleDateString('bn-BD')}</div><div class="sig">কর্তৃপক্ষের স্বাক্ষর</div></div>
+      </div>
+    </div>
   </body></html>`);
-  w.document.close(); w.print();
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 800);
+}
+
+function printStudentList() {
+  var cls  = (document.getElementById('studentClassFilter')||{}).value||'';
+  var arc  = (document.getElementById('studentArchivedFilter')||{}).value||'active';
+  var q    = ((document.getElementById('studentSearch')||{}).value||'').toLowerCase();
+  var list = (data.students||[]).filter(function(s){
+    if(arc==='active'   && s.status==='archived') return false;
+    if(arc==='archived' && s.status!=='archived') return false;
+    if(cls && s.cls!==cls) return false;
+    if(q && !(s.name||'').toLowerCase().includes(q)) return false;
+    return true;
+  }).sort(function(a,b){ return (Number(a.roll)||999)-(Number(b.roll)||999); });
+
+  var subtitle = cls ? cls+' শ্রেণি' : 'সকল শিক্ষার্থী';
+  var rows = list.map(function(s,i){
+    return '<tr><td>'+(s.roll||i+1)+'</td><td>'+s.name+'</td><td>'+(s.father||'')+'</td><td>'+s.cls+'</td><td>'+(s.branch||'')+'</td><td>'+(s.mobile||'')+'</td><td>'+(s.admDate||'')+'</td></tr>';
+  }).join('');
+  var body = '<table><thead><tr><th>রোল</th><th>নাম</th><th>পিতার নাম</th><th>শ্রেণি</th><th>বিভাগ</th><th>মোবাইল</th><th>ভর্তি তারিখ</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<p style="margin-top:10px;font-size:11px;color:#666;">মোট শিক্ষার্থী: '+list.length+' জন</p>';
+  printHTML('শিক্ষার্থী তালিকা', subtitle, body);
 }
 
 function printResultSheet() {
@@ -6399,44 +6506,34 @@ function saveFeePayment(printAfter) {
 function saveFeeAndPrintReceipt() { saveFeePayment(true); }
 
 function printFeeReceipt(payment, personId, personType) {
-  var person = personType==='student' ? data.students.find(function(s){return s.id===personId;}) : data.teachers.find(function(t){return t.id===personId;});
+  var person = personType==='student'
+    ? data.students.find(function(s){return s.id===personId;})
+    : data.teachers.find(function(t){return t.id===personId;});
   if(!person) return;
-  var inst = data.settings.name||'মাদ্রাসা ব্যবস্থাপনা';
-  var address = data.settings.address||'';
   var dateFormatted = payment.date ? new Date(payment.date).toLocaleDateString('bn-BD',{year:'numeric',month:'long',day:'numeric'}) : '';
-  var w = window.open('','_blank','width=400,height=500');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Noto Sans Bengali',sans-serif;padding:16px;width:320px;}
-  .receipt{border:2px solid #1a4a2e;border-radius:8px;overflow:hidden;}
-  .rh{background:#1a4a2e;color:#fff;text-align:center;padding:10px;}
-  .rh h2{font-size:14px;}
-  .rh p{font-size:11px;opacity:.85;}
-  .rb{padding:12px;}
-  .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #ddd;font-size:12px;}
-  .row b{color:#1a4a2e;}
-  .total{background:#e8f5ee;padding:8px 12px;text-align:center;font-size:16px;font-weight:800;color:#1a4a2e;margin-top:8px;border-radius:4px;}
-  .footer{text-align:center;font-size:10px;color:#888;margin-top:10px;padding-top:8px;border-top:1px solid #ddd;}
-  @media print{@page{margin:5mm;size:80mm auto;}}</style>
-  </head><body>
-  <div class="receipt">
-    <div class="rh"><h2>🕌 ${inst}</h2><p>${address}</p><p style="margin-top:4px;font-weight:700;">ফী আদায়ের রসিদ</p></div>
-    <div class="rb">
-      <div class="row"><span>রসিদ নং</span><b>${payment.receipt||'-'}</b></div>
-      <div class="row"><span>তারিখ</span><b>${dateFormatted}</b></div>
-      <div class="row"><span>নাম</span><b>${person.name}</b></div>
-      <div class="row"><span>কোড</span><b style="font-family:monospace;">${person.code||'-'}</b></div>
-      ${personType==='student'?'<div class="row"><span>শ্রেণি / রোল</span><b>'+(person.cls||'-')+' / '+(person.roll||'-')+'</b></div>':''}
-      <div class="row"><span>ফি ধরন</span><b>${payment.feeType}</b></div>
-      <div class="row"><span>মাস / বছর</span><b>${payment.month} ${payment.year}</b></div>
-      ${payment.note?'<div class="row"><span>নোট</span><b>'+payment.note+'</b></div>':''}
-      <div class="total">আদায়কৃত: ৳ ${Number(payment.amount).toLocaleString('bn-BD')}</div>
-    </div>
-    <div class="footer">স্বাক্ষর: ________________<br>${data.settings.principal||''}<br>এই রসিদটি কম্পিউটার প্রিন্টেড</div>
-  </div>
-  <script>window.onload=function(){window.print();window.close();}<\/script>
-  </body></html>`);
-  w.document.close();
+
+  var rows = [
+    ['রসিদ নং', payment.receipt||genId().slice(-6).toUpperCase()],
+    ['তারিখ', dateFormatted],
+    ['নাম', person.name],
+    ['আইডি', person.code||'-'],
+  ];
+  if(personType==='student') rows.push(['শ্রেণি / রোল', (person.cls||'-')+' / '+(person.roll||'-')]);
+  rows.push(['ফি ধরন', payment.feeType]);
+  rows.push(['মাস / বছর', (payment.month||'-')+' '+(payment.year||'')]);
+  if(payment.note) rows.push(['নোট', payment.note]);
+
+  var tableRows = rows.map(function(r){
+    return '<tr><td>'+r[0]+'</td><td><b>'+r[1]+'</b></td></tr>';
+  }).join('');
+
+  var slipHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse;">'
+    + tableRows
+    +'</table>'
+    +'<div style="background:#e8f5ee;border:1px solid #1a4a2e;border-radius:6px;text-align:center;padding:10px;margin-top:12px;font-size:16px;font-weight:800;color:#1a4a2e;">আদায়কৃত: ৳ '+Number(payment.amount).toLocaleString('bn-BD')+'</div>'
+    +'<p style="font-size:10px;color:#888;text-align:center;margin-top:8px;">এই রসিদটি কম্পিউটার প্রিন্টেড</p>';
+
+  printDualSlip('ফী আদায়ের রসিদ', slipHTML);
 }
 
 // ===================== STUDENT PROFILE =====================
@@ -8179,39 +8276,28 @@ function markPayrollPaid(tid, amount) {
 
 function printPayroll() {
   const month = document.getElementById('payrollMonth').value;
-  const year = document.getElementById('payrollYear').value;
-  const tbody = document.getElementById('payrollBody').innerHTML;
-  const w = window.open('','_blank');
-  w.document.write(`<html><head><meta charset="UTF-8"><style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap');
-    body{font-family:'Noto Sans Bengali',sans-serif;padding:20px;font-size:11px;}
-    h2{text-align:center;color:#1a4a2e;margin-bottom:4px;}
-    h4{text-align:center;color:#555;margin-bottom:14px;}
-    table{width:100%;border-collapse:collapse;}
-    th{background:#1a4a2e;color:#fff;padding:6px;font-size:11px;}
-    td{border:1px solid #ccc;padding:5px;text-align:center;}
-    button{display:none!important;}
-    .badge{display:inline-block;padding:2px 8px;border-radius:4px;}
-    .badge-green{background:#e8f5ee;color:#1a4a2e;}
-    .badge-red{background:#fdecea;color:#c0392b;}
-    @media print{button{display:none!important;}}
-  </style></head><body>
-    <h2>🕌 ${data.settings.name||'মাদ্রাসা'}</h2>
-    <h4>পেরোল — ${month} ${year}</h4>
-    <table>
-      <thead><tr>
-        <th>নাম</th><th>পদবী</th><th>মূল বেতন</th>
-        <th>উপস্থিত</th><th>অনুপস্থিত</th><th>উপস্থিতি বেতন</th>
-        <th>বোনাস</th><th>কাটা</th><th>মোট প্রদেয়</th><th>অবস্থা</th>
-      </tr></thead>
-      <tbody>${tbody}</tbody>
-    </table>
-    <div style="display:flex;justify-content:space-between;margin-top:40px;font-size:11px;">
-      <p>হিসাব রক্ষক: _______________</p>
-      <p>প্রধান শিক্ষক: ${data.settings.principal||'_______________'} (সিল ও স্বাক্ষর)</p>
-    </div>
-  </body></html>`);
-  w.document.close(); w.print();
+  const year  = document.getElementById('payrollYear').value;
+
+  // Build table from data
+  var teachers = (data.teachers||[]).filter(function(t){ return t.status!=='inactive'; });
+  var rows = teachers.map(function(t){
+    var baseSalary = Number(t.salary||0);
+    var adjs = (data.payrollAdj||[]).filter(function(a){ return a.tid===t.id && a.month===month && String(a.year)===String(year); });
+    var bonus = adjs.filter(function(a){ return a.type==='বোনাস'; }).reduce(function(s,a){ return s+Number(a.amount||0); },0);
+    var deduct= adjs.filter(function(a){ return a.type==='কাটা';  }).reduce(function(s,a){ return s+Number(a.amount||0); },0);
+    var total = baseSalary + bonus - deduct;
+    return '<tr><td>'+t.name+'</td><td>'+(t.desig||t.type)+'</td>'
+      +'<td style="text-align:right;">৳ '+baseSalary.toLocaleString()+'</td>'
+      +'<td style="text-align:right;color:green;">৳ '+bonus.toLocaleString()+'</td>'
+      +'<td style="text-align:right;color:red;">৳ '+deduct.toLocaleString()+'</td>'
+      +'<td style="text-align:right;font-weight:700;">৳ '+total.toLocaleString()+'</td></tr>';
+  }).join('');
+
+  var body = '<table><thead><tr><th>নাম</th><th>পদবী</th><th>মূল বেতন</th><th>বোনাস</th><th>কাটা</th><th>মোট প্রদেয়</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +'<p style="margin-top:10px;font-size:11px;color:#555;">মাস: '+month+' '+year+'</p>';
+
+  printHTML('পেরোল', month+' '+year, body, {landscape:false});
 }
 
 // ===================== PIN LOGIN SYSTEM =====================
@@ -11830,6 +11916,7 @@ var _fns = {
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
   openStudentCSVExport, csvSelectAll, downloadStudentCSV,
+  printHTML, printDualSlip,
   admApprove, admReject, admConvert, renderAdmissions, updateAdmissionBadge,
   addSubject, removeSubject, renderSubjectPerClass, renderSubjectPage,
   openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects, diaryPopulateFilters,

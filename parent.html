@@ -51,8 +51,22 @@ tr:hover td{background:#f8fffe;}
 .tab{padding:6px 14px;border:1.5px solid var(--border);border-radius:20px;background:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;}
 .tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
 .result-exam{background:var(--primary-dark);color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;}
-.result-table-wrap{border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:12px;overflow:hidden;}
-@media(max-width:480px){.stat-grid{grid-template-columns:1fr 1fr;}.search-area{flex-direction:column;}}
+.result-table-wrap{border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{white-space:nowrap;}
+@media(max-width:600px){
+  .container{padding:10px 8px;}
+  .card{padding:14px;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .search-area{flex-direction:column;}
+  .tab-row{flex-wrap:wrap;gap:4px;}
+  .tab{padding:6px 10px;font-size:12px;}
+  table{font-size:12px;}
+  th,td{padding:6px 8px;}
+  .topbar h1{font-size:15px;}
+  .payment-method{flex-direction:column;}
+  .method-btn{min-width:0;}
+}@media(max-width:480px){.stat-grid{grid-template-columns:1fr 1fr;}.search-area{flex-direction:column;}}
 </style>
 </head>
 <body>
@@ -255,13 +269,13 @@ var firebaseConfig = {
 if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
 
-var gData = { settings:{}, students:[], attendance:{}, results:[], feePayments:[], onlinePayments:[], studentRemarks:[], leaves:[], hostelAssignments:[], hostelMealRoutine:{}, hostelFees:[], hostelLeaves:[], diary:[], subjects:{}, examResults:{} };
+var gData = { settings:{}, students:[], attendance:{}, results:[], feePayments:[], onlinePayments:[], studentRemarks:[], leaves:[], hostelAssignments:[], hostelMealRoutine:{}, hostelFees:[], hostelLeaves:[], diary:[], subjects:{}, examResults:{}, examMeta:{} };
 var gStudent = null;
 var PAYMENT_METHODS = { bkash:'bKash', nagad:'নগদ', bank:'ব্যাংক ট্রান্সফার' };
 var PAYMENT_NUMBERS = { bkash:'01XXXXXXXXX', nagad:'01XXXXXXXXX', bank:'AC: XXXXXXXXXXXX' };
 
 async function loadAllData() {
-  var keys = ['settings','students','attendance','results','feePayments','onlinePayments','studentRemarks','leaves','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','diary','subjects','examResults'];
+  var keys = ['settings','students','attendance','results','feePayments','onlinePayments','studentRemarks','leaves','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','diary','subjects','examResults','examMeta'];
   for(var i=0;i<keys.length;i++){
     try {
       var doc = await db.collection('madrasa').doc(keys[i]).get();
@@ -529,15 +543,147 @@ function pCalcGPA(pct) {
 }
 
 var P_EXAM_KEYS = [
-  { key:'mt1',    label:'১ম মডেল টেস্ট',    maxMark:100 },
-  { key:'mt2',    label:'২য় মডেল টেস্ট',    maxMark:100 },
-  { key:'half',   label:'অর্ধবার্ষিক',       maxMark:100 },
-  { key:'mt3',    label:'৩য় মডেল টেস্ট',    maxMark:100 },
-  { key:'mt4',    label:'৪র্থ মডেল টেস্ট',   maxMark:100 },
-  { key:'annual', label:'বার্ষিক / ফাইনাল',  maxMark:100 },
+  { key:'mt1',    label:'১ম মডেল টেস্ট',    type:'mt',     defMax:20  },
+  { key:'mt2',    label:'২য় মডেল টেস্ট',    type:'mt',     defMax:20  },
+  { key:'half',   label:'অর্ধ-বার্ষিক',      type:'half',   defMax:80  },
+  { key:'mt3',    label:'৩য় মডেল টেস্ট',    type:'mt',     defMax:20  },
+  { key:'mt4',    label:'৪র্থ মডেল টেস্ট',   type:'mt',     defMax:20  },
+  { key:'annual', label:'বার্ষিক / ফাইনাল',  type:'annual', defMax:80  },
 ];
 
+// examMeta থেকে maxMark নাও, না পেলে default
+function pGetMaxMark(sid, examKey, defMax) {
+  var meta = gData.examMeta&&gData.examMeta[sid]&&gData.examMeta[sid][examKey];
+  return (meta&&meta.maxMark) ? meta.maxMark : defMax;
+}
+
 function renderResults(s) {
+  var el = document.getElementById('resultsBody');
+  if(!el) return;
+  var subjects = (gData.subjects&&gData.subjects[s.cls])||[];
+  var er = (gData.examResults&&gData.examResults[s.id])||{};
+
+  // Fallback: পুরনো result system
+  if(!subjects.length) {
+    var oldResults = (gData.results||[]).filter(function(r){ return r.studentId===s.id; });
+    if(!oldResults.length){ el.innerHTML='<p style="text-align:center;color:#888;padding:20px;">কোনো ফলাফল নেই।</p>'; return; }
+    var exams={};
+    oldResults.forEach(function(r){ var k=r.examName||'পরীক্ষা'; if(!exams[k]) exams[k]=[]; exams[k].push(r); });
+    el.innerHTML = Object.keys(exams).map(function(examName){
+      var rows=exams[examName];
+      var total=rows.reduce(function(a,r){return a+Number(r.marks||0);},0);
+      var full=rows.reduce(function(a,r){return a+Number(r.fullMarks||100);},0);
+      var pct=full>0?Math.round(total/full*100):0;
+      var g=pCalcGPA(pct);
+      return '<div style="background:#1a4a2e;color:#fff;border-radius:8px 8px 0 0;padding:10px 14px;font-weight:700;margin-top:14px;">'+examName+' — মোট: '+total+'/'+full+' | '+g.grade+'</div>'
+        +'<div style="overflow-x:auto;"><table><thead><tr><th>বিষয়</th><th>পূর্ণমান</th><th>প্রাপ্তমান</th></tr></thead><tbody>'
+        +rows.map(function(r){
+          return '<tr><td>'+r.subject+'</td><td style="text-align:center;">'+r.fullMarks+'</td><td style="text-align:center;font-weight:700;">'+r.marks+'</td></tr>';
+        }).join('')+'</tbody></table></div>';
+    }).join('');
+    return;
+  }
+
+  var html = '';
+  P_EXAM_KEYS.forEach(function(exam) {
+    var isMT     = exam.type==='mt';
+    var isHalf   = exam.type==='half';
+    var isAnnual = exam.type==='annual';
+    var maxMark  = pGetMaxMark(s.id, exam.key, exam.defMax);
+    var marks    = er[exam.key]||{};
+    var anyMark  = subjects.some(function(sub){ var m=marks[sub]; return m!==undefined&&m!==''&&!isNaN(Number(m)); });
+
+    // Header note
+    var note = '';
+    if(isHalf)   note = ' <small style="font-weight:400;opacity:.8;">(পরীক্ষা '+maxMark+' + MT গড় ২০ = ১০০)</small>';
+    if(isAnnual) note = ' <small style="font-weight:400;opacity:.8;">(পরীক্ষা '+maxMark+' + MT গড় ২০ = ১০০)</small>';
+
+    // Table header — MT তে grade column নেই
+    var thead = isMT
+      ? '<tr><th>বিষয়</th><th>পূর্ণমান ('+maxMark+')</th><th>প্রাপ্তমান</th></tr>'
+      : '<tr><th>বিষয়</th><th>পরীক্ষা ('+maxMark+')</th><th>প্রাপ্তমান</th>'+(isHalf||isAnnual?'<th>MT গড়→২০</th>':'')+'<th>মোট</th><th>গ্রেড</th></tr>';
+
+    html += '<div style="margin-bottom:22px;">'
+      +'<div style="background:#1a4a2e;color:#fff;border-radius:8px 8px 0 0;padding:10px 14px;font-weight:700;font-size:14px;">'+exam.label+note+'</div>'
+      +'<div style="overflow-x:auto;"><table><thead>'+thead+'</thead><tbody>';
+
+    var totExam=0, totMT=0, totSubjects=0;
+
+    subjects.forEach(function(sub, si) {
+      var m = marks[sub];
+      var obtained = (m!==undefined&&m!==''&&!isNaN(Number(m))) ? Number(m) : null;
+      var bg = si%2===0?'#f8f8f8':'#fff';
+      var oc = obtained===null?'#bbb':obtained<maxMark*0.33?'#c0392b':'#1a4a2e';
+
+      if(isMT) {
+        // MT: শুধু প্রাপ্তমান, কোনো grade নেই
+        html += '<tr style="background:'+bg+';">'
+          +'<td><b>'+sub+'</b></td>'
+          +'<td style="text-align:center;">'+maxMark+'</td>'
+          +'<td style="text-align:center;font-weight:700;color:'+oc+'">'+(obtained!==null?obtained:'—')+'</td>'
+        +'</tr>';
+        if(obtained!==null) totExam+=obtained;
+      } else {
+        // half/annual: প্রাপ্তমান + MT গড় + মোট + grade
+        var mtAvg = null;
+        if(isHalf||isAnnual) {
+          var mkA=isHalf?'mt1':'mt3', mkB=isHalf?'mt2':'mt4';
+          var mA=(er[mkA]||{})[sub], mB=(er[mkB]||{})[sub];
+          var mxA=pGetMaxMark(s.id,mkA,20), mxB=pGetMaxMark(s.id,mkB,20);
+          if(mA!==undefined&&mB!==undefined&&!isNaN(Number(mA))&&!isNaN(Number(mB))) {
+            mtAvg = (Number(mA)/mxA + Number(mB)/mxB)/2 * 20;
+          }
+        }
+        var total100 = obtained!==null ? obtained + (mtAvg!==null?mtAvg:0) : null;
+        var fullWith = maxMark + (isHalf||isAnnual?20:0);
+        var pct = total100!==null ? Math.round(total100/fullWith*100) : null;
+        var g   = pct!==null ? pCalcGPA(pct) : null;
+        var tc  = pct===null?'#bbb':pct<33?'#c0392b':pct<50?'#e67e22':'#1a4a2e';
+
+        html += '<tr style="background:'+bg+';">'
+          +'<td><b>'+sub+'</b></td>'
+          +'<td style="text-align:center;">'+maxMark+'</td>'
+          +'<td style="text-align:center;font-weight:700;color:'+oc+'">'+(obtained!==null?obtained:'—')+'</td>'
+          +(isHalf||isAnnual?'<td style="text-align:center;color:#2980b9;">'+(mtAvg!==null?Math.round(mtAvg*10)/10:'—')+'</td>':'')
+          +'<td style="text-align:center;font-weight:700;color:'+tc+'">'+(total100!==null?Math.round(total100*10)/10+'/'+fullWith:'—')+'</td>'
+          +'<td style="text-align:center;">'+(g?'<span class="badge '+(pct>=70?'badge-green':pct>=40?'badge-yellow':'badge-red')+'"><b>'+g.grade+'</b></span>':'—')+'</td>'
+        +'</tr>';
+        if(obtained!==null) { totExam+=obtained; totSubjects++; }
+        if(mtAvg!==null) totMT+=mtAvg;
+      }
+    });
+
+    // Summary row
+    if(anyMark) {
+      if(isMT) {
+        html += '<tr style="background:#1a4a2e;color:#fff;font-weight:700;">'
+          +'<td>মোট প্রাপ্ত</td>'
+          +'<td style="text-align:center;">'+(maxMark*subjects.length)+'</td>'
+          +'<td style="text-align:center;">'+totExam+'</td>'
+        +'</tr>';
+      } else {
+        var grandTotal = totExam + totMT;
+        var grandFull  = (maxMark + (isHalf||isAnnual?20:0)) * subjects.filter(function(sub){ return (marks[sub]!==undefined&&marks[sub]!==''); }).length;
+        var grandPct   = grandFull>0 ? Math.round(grandTotal/grandFull*100) : 0;
+        var grandG     = pCalcGPA(grandPct);
+        html += '<tr style="background:#1a4a2e;color:#fff;font-weight:700;">'
+          +'<td>সর্বমোট</td>'
+          +'<td style="text-align:center;">'+maxMark*subjects.length+'</td>'
+          +'<td style="text-align:center;">'+totExam+'</td>'
+          +(isHalf||isAnnual?'<td style="text-align:center;">'+Math.round(totMT*10)/10+'</td>':'')
+          +'<td style="text-align:center;">'+Math.round(grandTotal*10)/10+'/'+grandFull+'</td>'
+          +'<td style="text-align:center;">GPA '+grandG.gpa.toFixed(2)+' ('+grandG.grade+')</td>'
+        +'</tr>';
+      }
+    } else {
+      html += '<tr><td colspan="'+(isMT?3:(isHalf||isAnnual?6:5))+'" style="text-align:center;color:#888;padding:10px;">মার্ক এখনো দেওয়া হয়নি</td></tr>';
+    }
+
+    html += '</tbody></table></div></div>';
+  });
+
+  el.innerHTML = html || '<p style="text-align:center;color:#888;padding:20px;">কোনো ফলাফল নেই।</p>';
+}
   var el = document.getElementById('resultsBody');
   if(!el) return;
   var subjects = (gData.subjects&&gData.subjects[s.cls])||[];
@@ -568,75 +714,6 @@ function renderResults(s) {
     return;
   }
 
-  // New exam-wise result sheet
-  var html = '';
-  P_EXAM_KEYS.forEach(function(exam) {
-    var marks = er[exam.key]||{};
-    var anyMark = subjects.some(function(sub){ var m=marks[sub]; return m!==undefined&&m!==''&&!isNaN(Number(m)); });
-
-    var extraNote = exam.key==='half'?' <small style="font-weight:400;opacity:.8;">(MT-1 + MT-2 গড় অন্তর্ভুক্ত)</small>':'';
-    if(exam.key==='annual') extraNote=' <small style="font-weight:400;opacity:.8;">(MT-3 + MT-4 + বার্ষিক সমন্বয়)</small>';
-
-    html += '<div style="margin-bottom:20px;">'
-      +'<div style="background:#1a4a2e;color:#fff;border-radius:8px 8px 0 0;padding:10px 14px;font-weight:700;">'+exam.label+extraNote+'</div>'
-      +'<div style="overflow-x:auto;">'
-      +'<table><thead><tr><th>বিষয়</th><th>পূর্ণমান</th><th>প্রাপ্তমান</th><th>%</th><th>গ্রেড</th></tr></thead><tbody>';
-
-    var totObt=0, totMax=0;
-    subjects.forEach(function(sub, si) {
-      var m = marks[sub];
-      var obtained = (m!==undefined&&m!==''&&!isNaN(Number(m)))?Number(m):null;
-      var pct = obtained!==null ? Math.round(obtained/exam.maxMark*100) : null;
-      var g = pct!==null ? pCalcGPA(pct) : null;
-      if(obtained!==null){ totObt+=obtained; totMax+=exam.maxMark; }
-      html += '<tr style="background:'+(si%2===0?'#f8f8f8':'#fff')+'">'
-        +'<td><b>'+sub+'</b></td>'
-        +'<td style="text-align:center;">'+exam.maxMark+'</td>'
-        +'<td style="text-align:center;font-weight:700;color:'+(obtained===null?'#ccc':obtained<exam.maxMark*0.33?'#c0392b':'#1a4a2e')+'">'+(obtained!==null?obtained:'—')+'</td>'
-        +'<td style="text-align:center;">'+(pct!==null?pct+'%':'—')+'</td>'
-        +'<td style="text-align:center;">'+(g?'<span class="badge '+(pct>=70?'badge-green':pct>=40?'badge-yellow':'badge-red')+'">'+g.grade+'</span>':'—')+'</td>'
-      +'</tr>';
-    });
-
-    if(anyMark) {
-      var totalPct = Math.round(totObt/totMax*100);
-      var combined = totalPct;
-
-      if(exam.key==='half') {
-        var mt1m=er['mt1']||{}, mt2m=er['mt2']||{};
-        var s1=0,s2=0,mx=0,ok=false;
-        subjects.forEach(function(sub){
-          var a=mt1m[sub],b=mt2m[sub];
-          if(a!==undefined&&b!==undefined&&!isNaN(Number(a))&&!isNaN(Number(b))){ s1+=Number(a);s2+=Number(b);mx+=exam.maxMark;ok=true; }
-        });
-        if(ok){ var mtPct=Math.round((s1+s2)/(mx*2)*100); combined=Math.round((totalPct+mtPct)/2); }
-      }
-      if(exam.key==='annual') {
-        var mt3m=er['mt3']||{}, mt4m=er['mt4']||{};
-        var s3=0,s4=0,mx2=0,ok2=false;
-        subjects.forEach(function(sub){
-          var a=mt3m[sub],b=mt4m[sub];
-          if(a!==undefined&&b!==undefined&&!isNaN(Number(a))&&!isNaN(Number(b))){ s3+=Number(a);s4+=Number(b);mx2+=exam.maxMark;ok2=true; }
-        });
-        if(ok2){ var mt34Pct=Math.round((s3+s4)/(mx2*2)*100); combined=Math.round((totalPct*2+mt34Pct)/3); }
-      }
-
-      var combG = pCalcGPA(combined);
-      html += '<tr style="background:#1a4a2e;color:#fff;font-weight:700;">'
-        +'<td>সর্বমোট</td><td style="text-align:center;">'+totMax+'</td>'
-        +'<td style="text-align:center;">'+totObt+'</td>'
-        +'<td style="text-align:center;">'+totalPct+'%'+(combined!==totalPct?' → '+combined+'%':'')+'</td>'
-        +'<td style="text-align:center;">GPA '+combG.gpa.toFixed(2)+' ('+combG.grade+')</td>'
-      +'</tr>';
-    } else {
-      html += '<tr><td colspan="5" style="text-align:center;color:#888;padding:12px;">এখনো মার্ক দেওয়া হয়নি</td></tr>';
-    }
-
-    html += '</tbody></table></div></div>';
-  });
-
-  el.innerHTML = html || '<p style="text-align:center;color:#888;padding:20px;">কোনো ফলাফল নেই।</p>';
-}
 
 function renderFees(s) {
   var paid = (gData.feePayments||[]).filter(function(f){ return f.personId===s.id; });
