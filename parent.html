@@ -121,6 +121,7 @@ th,td{white-space:nowrap;}
       <button class="tab" id="leaveTabBtn" onclick="switchTab('leave',this)">📝 ছুটির আবেদন</button>
       <button class="tab" onclick="switchTab('payment',this)">💰 পেমেন্ট করুন</button>
       <button class="tab" id="hostelTabBtn" onclick="switchTab('hostel',this)" style="display:none;">🏠 হোস্টেল</button>
+      <button class="tab" onclick="switchTab('message',this)">✉️ বার্তা পাঠান</button>
     </div>
 
     <!-- Tab: Attendance -->
@@ -251,6 +252,49 @@ th,td{white-space:nowrap;}
       </div>
     </div>
 
+    <div id="tab-message" class="tab-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">✉️ বার্তা পাঠান</div>
+        <p style="font-size:13px;color:#666;margin-bottom:16px;line-height:1.7;">প্রিন্সিপাল, ক্লাস টিচার বা ফিনান্স বিভাগকে সরাসরি বার্তা পাঠান।</p>
+
+        <!-- Recipient -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">প্রাপক বেছে নিন *</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;" id="msgRecipients">
+            <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:.15s;" id="rLabel_principal">
+              <input type="radio" name="msgTo" value="principal" style="cursor:pointer;"> 🎓 প্রিন্সিপাল
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:.15s;" id="rLabel_teacher">
+              <input type="radio" name="msgTo" value="teacher" style="cursor:pointer;"> 👨‍🏫 ক্লাস টিচার
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:.15s;" id="rLabel_finance">
+              <input type="radio" name="msgTo" value="finance" style="cursor:pointer;"> 💳 ফিনান্স বিভাগ
+            </label>
+          </div>
+        </div>
+
+        <!-- Subject -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px;">বিষয় *</label>
+          <input type="text" id="msgSubject" placeholder="বার্তার বিষয়..." style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;transition:.2s;">
+        </div>
+
+        <!-- Message -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px;">বার্তা *</label>
+          <textarea id="msgBody" rows="5" placeholder="আপনার বার্তা লিখুন..." style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical;transition:.2s;"></textarea>
+        </div>
+
+        <button onclick="sendParentMessage()" class="btn btn-primary" style="width:100%;">📤 বার্তা পাঠান</button>
+      </div>
+
+      <!-- Sent messages -->
+      <div class="card" style="margin-top:14px;">
+        <div class="card-title">📬 পাঠানো বার্তাসমূহ</div>
+        <div id="sentMsgList"></div>
+      </div>
+    </div>
+
   </div><!-- /studentProfile -->
 
 </div><!-- /container -->
@@ -338,13 +382,93 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById('tab-'+tab).style.display='block';
   if(btn) btn.classList.add('active');
-  if(tab==='diary') renderParentDiary();
-  if(tab==='results') renderResults(gStudent);
-  if(tab==='fees') renderFees(gStudent);
-  if(tab==='payment') renderPaymentForm(gStudent);
-  if(tab==='remarks') renderRemarks(gStudent);
-  if(tab==='leave') renderParentLeave(gStudent);
-  if(tab==='hostel') renderParentHostel(gStudent);
+  if(tab==='diary')    renderParentDiary();
+  if(tab==='results')  renderResults(gStudent);
+  if(tab==='fees')     renderFees(gStudent);
+  if(tab==='payment')  renderPaymentForm(gStudent);
+  if(tab==='remarks')  renderRemarks(gStudent);
+  if(tab==='leave')    renderParentLeave(gStudent);
+  if(tab==='hostel')   renderParentHostel(gStudent);
+  if(tab==='message')  renderSentMessages();
+}
+
+// ── Parent messaging ──
+async function sendParentMessage() {
+  if(!gStudent) return;
+  var to      = document.querySelector('input[name="msgTo"]:checked');
+  var subject = (document.getElementById('msgSubject')||{}).value.trim();
+  var body    = (document.getElementById('msgBody')||{}).value.trim();
+
+  if(!to)     { showToast('প্রাপক বেছে নিন।', true); return; }
+  if(!subject){ showToast('বিষয় লিখুন।', true); return; }
+  if(!body)   { showToast('বার্তা লিখুন।', true); return; }
+
+  var toLabels = { principal:'প্রিন্সিপাল', teacher:'ক্লাস টিচার', finance:'ফিনান্স বিভাগ' };
+  var msg = {
+    id: 'MSG-'+Date.now().toString(36).toUpperCase(),
+    from: gStudent.name,
+    studentId: gStudent.id,
+    studentCode: gStudent.code||'',
+    cls: gStudent.cls,
+    to: to.value,
+    toLabel: toLabels[to.value]||to.value,
+    subject: subject,
+    body: body,
+    sentAt: new Date().toISOString(),
+    read: false
+  };
+
+  try {
+    var snap = await db.collection('madrasa').doc('parentMessages').get();
+    var existing = snap.exists ? (snap.data().value||[]) : [];
+    existing.push(msg);
+    await db.collection('madrasa').doc('parentMessages').set({value: existing});
+
+    // Clear form
+    document.getElementById('msgSubject').value = '';
+    document.getElementById('msgBody').value = '';
+    document.querySelectorAll('input[name="msgTo"]').forEach(function(r){ r.checked=false; });
+
+    showToast('বার্তা পাঠানো হয়েছে ✅');
+    renderSentMessages();
+  } catch(e) {
+    showToast('পাঠানো ব্যর্থ হয়েছে। ইন্টারনেট চেক করুন।', true);
+  }
+}
+
+async function renderSentMessages() {
+  var el = document.getElementById('sentMsgList');
+  if(!el || !gStudent) return;
+  try {
+    var snap = await db.collection('madrasa').doc('parentMessages').get();
+    var all  = snap.exists ? (snap.data().value||[]) : [];
+    var mine = all.filter(function(m){ return m.studentId===gStudent.id; })
+      .sort(function(a,b){ return (b.sentAt||'').localeCompare(a.sentAt||''); });
+
+    if(!mine.length) {
+      el.innerHTML='<p style="color:#888;text-align:center;padding:16px;font-size:13px;">কোনো বার্তা পাঠানো হয়নি।</p>';
+      return;
+    }
+    el.innerHTML = mine.map(function(m){
+      var date = m.sentAt ? new Date(m.sentAt).toLocaleDateString('bn-BD',{day:'numeric',month:'short',year:'numeric'}) : '';
+      return '<div style="border:1px solid #e0e0e0;border-radius:10px;padding:13px;margin-bottom:10px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">'
+          +'<span style="font-weight:700;font-size:13px;color:#1a4a2e;">'+m.subject+'</span>'
+          +'<div style="display:flex;gap:6px;align-items:center;">'
+            +'<span style="background:#e8f5ee;color:#1a4a2e;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:600;">→ '+m.toLabel+'</span>'
+            +'<span style="font-size:11px;color:#888;">'+date+'</span>'
+          +'</div>'
+        +'</div>'
+        +'<p style="font-size:12px;color:#555;line-height:1.7;">'+m.body+'</p>'
+        +(m.reply?'<div style="background:#f0f7f0;border-left:3px solid #1a4a2e;padding:8px 12px;margin-top:8px;border-radius:0 6px 6px 0;">'
+            +'<div style="font-size:11px;font-weight:700;color:#1a4a2e;margin-bottom:3px;">↩ উত্তর:</div>'
+            +'<p style="font-size:12px;color:#333;">'+m.reply+'</p>'
+          +'</div>':'')
+      +'</div>';
+    }).join('');
+  } catch(e) {
+    el.innerHTML='<p style="color:#888;text-align:center;padding:16px;font-size:13px;">লোড করা যায়নি।</p>';
+  }
 }
 
 function renderParentDiary() {

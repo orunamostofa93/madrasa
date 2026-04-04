@@ -441,6 +441,22 @@
     .holiday-grid { grid-template-columns:1fr 1fr; }
     .holiday-grid > *:last-child { grid-column:1/-1; }
   }
+
+  /* Mobile bottom navigation */
+  .mbn-btn {
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:5px 2px 2px;background:none;border:none;cursor:pointer;
+    font-family:inherit;font-size:9px;color:var(--text-muted);
+    transition:.15s;width:100%;
+  }
+  .mbn-btn > span:first-child { font-size:20px;line-height:1.2;display:block; }
+  .mbn-btn.mbn-active { color:var(--primary); }
+  @media(max-width:768px) {
+    #mobileBottomNav { display:block !important; }
+    #content { padding-bottom:72px !important; }
+    /* Sidebar ওপরে থাকবে bottom nav এর উপরে */
+    #sidebar { z-index:600 !important; }
+  }
   #classList { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:4px; min-height:42px; padding:8px; border:2px dashed var(--border); border-radius:10px; background:#fafafa; }
   .cls-chip { background:var(--primary-ultra-light); border:1.5px solid var(--primary); border-radius:20px; padding:5px 10px 5px 8px; font-size:12px; font-weight:700; color:var(--primary); display:inline-flex; align-items:center; gap:5px; cursor:grab; user-select:none; transition:.15s; }
   .cls-chip:hover { box-shadow:0 2px 8px rgba(45,122,79,.2); }
@@ -609,6 +625,7 @@
     <div class="nav-item" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> ড্যাশবোর্ড</div>
     <div class="nav-section">শিক্ষার্থী</div>
     <div class="nav-item" onclick="showPage('admissions')"><span class="nav-icon">📝</span> ভর্তি আবেদন <span id="admissionBadge" style="background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;display:none;">0</span></div>
+    <div class="nav-item" onclick="showPage('parentmsg')"><span class="nav-icon">✉️</span> অভিভাবক বার্তা <span id="parentMsgBadge" style="background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;display:none;">0</span></div>
     <div class="nav-item" onclick="showPage('students')"><span class="nav-icon">👨‍🎓</span> শিক্ষার্থী তালিকা</div>
     <div class="nav-item" onclick="showPage('fee')"><span class="nav-icon">💳</span> ফী আদায়</div>
     <div class="nav-item" onclick="showPage('attendance')"><span class="nav-icon">✅</span> উপস্থিতি</div>
@@ -641,11 +658,35 @@
   </div>
 </nav>
 
-<!-- Main -->
+<!-- Mobile Bottom Navigation -->
+<div id="mobileBottomNav" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#fff;border-top:1px solid var(--border);padding:4px 0 6px;box-shadow:0 -2px 12px rgba(0,0,0,.08);">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;">
+    <button onclick="showPage('dashboard')" class="mbn-btn" data-page="dashboard"><span>📊</span><span>ড্যাশবোর্ড</span></button>
+    <button onclick="showPage('students')" class="mbn-btn" data-page="students"><span>👨‍🎓</span><span>শিক্ষার্থী</span></button>
+    <button onclick="showPage('attendance')" class="mbn-btn" data-page="attendance"><span>✅</span><span>হাজিরা</span></button>
+    <button onclick="showPage('fee')" class="mbn-btn" data-page="fee"><span>💳</span><span>ফী</span></button>
+    <button onclick="toggleSidebar()" class="mbn-btn"><span>☰</span><span>আরো</span></button>
+  </div>
+</div>
 <div id="main" style="display:none">
   <div id="header">
     <div class="header-title" id="pageTitle">ড্যাশবোর্ড</div>
     <div class="header-date" id="headerDate"></div>
+    <!-- Notification Bell -->
+    <div style="position:relative;display:inline-flex;">
+      <button class="header-btn" onclick="toggleNotifPanel()" id="notifBtn" style="position:relative;padding:6px 12px;font-size:18px;line-height:1;">
+        🔔
+        <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#c0392b;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;">0</span>
+      </button>
+      <!-- Notification Panel -->
+      <div id="notifPanel" style="display:none;position:absolute;top:48px;right:0;width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid var(--border);z-index:999;max-height:420px;overflow:hidden;flex-direction:column;">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;font-size:13px;">🔔 নোটিফিকেশন</span>
+          <button onclick="clearNotifs()" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;">সব মুছুন</button>
+        </div>
+        <div id="notifList" style="overflow-y:auto;max-height:350px;"></div>
+      </div>
+    </div>
     <button class="header-btn" onclick="window.print()">🖨️ প্রিন্ট</button>
     <button class="header-btn accent" onclick="exportData()">💾 ব্যাকআপ</button>
     <button class="header-btn btn-outline" onclick="toggleSidebar()" style="display:none" id="menuBtn">☰</button>
@@ -1644,6 +1685,29 @@
 
     </div>
 
+
+    <!-- ======================== PARENT MESSAGES ======================== -->
+    <div id="page-parentmsg" class="page">
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <span class="card-title">✉️ অভিভাবকদের বার্তা</span>
+          <div style="display:flex;gap:8px;">
+            <select id="pmsgFilterTo" onchange="renderParentMessages()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">সব বিভাগ</option>
+              <option value="principal">প্রিন্সিপাল</option>
+              <option value="teacher">ক্লাস টিচার</option>
+              <option value="finance">ফিনান্স বিভাগ</option>
+            </select>
+            <select id="pmsgFilterRead" onchange="renderParentMessages()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">সব বার্তা</option>
+              <option value="unread">অপঠিত</option>
+              <option value="read">পঠিত</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" id="parentMsgList"></div>
+      </div>
+    </div>
 
     <!-- ======================== ADMISSION APPLICATIONS ======================== -->
     <div id="page-admissions" class="page">
@@ -2730,6 +2794,7 @@ var data = {
   examResults: {},// {studentId: {examKey: {subjectName: marks}}}
   examMeta: {},   // {studentId: {examKey: {maxMark: N}}}
   admissionApplications: [], // [{id,name,father,mobile,cls,...,status,submittedAt}]
+  parentMessages: [],        // [{id,from,studentId,to,subject,body,sentAt,read,reply}]
 };
 
 // পুরনো রেকর্ডে ইউনিক কোড না থাকলে assign করো
@@ -2780,7 +2845,7 @@ function migrateOldCodes() {
 // Firebase থেকে ডেটা লোড করুন
 async function loadFromFirebase() {
   showLoading(true);
-  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts','subjects','diary','examResults','examMeta','admissionApplications'];
+  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts','subjects','diary','examResults','examMeta','admissionApplications','parentMessages'];
   for(const k of keys) {
     try {
       const snap = await db.collection('madrasa').doc(k).get();
@@ -2926,7 +2991,7 @@ var pageTitles = {
   routine:'ক্লাস রুটিন', syllabus:'সিলেবাস', exampaper:'প্রশ্নপত্র তৈরি',
   finance:'আয়-ব্যয় হিসাব', notice:'বিজ্ঞপ্তি', letters:'📜 পত্র ও প্রমাণপত্র', idcard:'আইডি কার্ড', settings:'সেটিংস', payroll:'💵 পে-রোল', stock:'📦 মালামাল স্টক', fee:'💳 ফী আদায়', remarks:'💬 শিক্ষার্থী মন্তব্য অনুমোদন',
   diary:'📓 ক্লাস ডায়েরি', resultsheet:'📊 শিক্ষার্থী রেজাল্ট শিট', subjects:'📚 বিষয় ব্যবস্থাপনা',
-  admissions:'📝 ভর্তি আবেদন'
+  admissions:'📝 ভর্তি আবেদন', parentmsg:'✉️ অভিভাবক বার্তা'
 };
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2957,11 +3022,16 @@ function showPage(id) {
   if(id==='settings') { loadSettings(); setTimeout(function(){ switchPermTab('users'); }, 100); }
   if(id==='remarks') renderRemarksApproval();
   if(id==='admissions') { admPopulateFilters(); renderAdmissions(); }
+  if(id==='parentmsg')  { renderParentMessages(); }
   if(id==='subjects') renderSubjectPage();
   if(id==='diary') { diaryPopulateFilters(); renderDiary(); }
   if(id==='resultsheet') { rsPopulateFilters(); bulkPopulateClasses(); finalPopulateClasses(); rsSwitchTab('bulk'); }
   // Close sidebar on mobile
   closeSidebar();
+  // Bottom nav active state
+  document.querySelectorAll('.mbn-btn[data-page]').forEach(function(b){
+    b.classList.toggle('mbn-active', b.dataset.page===id);
+  });
 }
 
 // ===================== MODALS =====================
@@ -11566,13 +11636,289 @@ function updateAdmissionBadge() {
   var pending = (data.admissionApplications||[]).filter(function(a){ return a.status==='pending'; }).length;
   var badge = document.getElementById('admissionBadge');
   if(!badge) return;
-  if(pending > 0) {
-    badge.style.display='inline-block';
-    badge.textContent = pending;
+  if(pending > 0) { badge.style.display='inline-block'; badge.textContent=pending; }
+  else badge.style.display='none';
+}
+
+function updateParentMsgBadge() {
+  var unread = (data.parentMessages||[]).filter(function(m){ return !m.read; }).length;
+  var badge = document.getElementById('parentMsgBadge');
+  if(!badge) return;
+  if(unread > 0) { badge.style.display='inline-block'; badge.textContent=unread; }
+  else badge.style.display='none';
+}
+
+function renderParentMessages() {
+  var el = document.getElementById('parentMsgList');
+  if(!el) return;
+  var filterTo   = (document.getElementById('pmsgFilterTo')||{}).value||'';
+  var filterRead = (document.getElementById('pmsgFilterRead')||{}).value||'';
+
+  var msgs = (data.parentMessages||[]).filter(function(m){
+    if(filterTo   && m.to!==filterTo)                            return false;
+    if(filterRead==='unread' && m.read)                          return false;
+    if(filterRead==='read'   && !m.read)                         return false;
+    return true;
+  }).sort(function(a,b){ return (b.sentAt||'').localeCompare(a.sentAt||''); });
+
+  updateParentMsgBadge();
+
+  if(!msgs.length) { el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-muted);">কোনো বার্তা নেই।</div>'; return; }
+
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">'
+    + msgs.map(function(m){
+      var date = m.sentAt ? new Date(m.sentAt).toLocaleString('bn-BD',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      var toLabels = {principal:'🎓 প্রিন্সিপাল',teacher:'👨‍🏫 ক্লাস টিচার',finance:'💳 ফিনান্স'};
+      return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:'+(m.read?'#fff':'#f0f7f0')+';border-left:4px solid '+(m.read?'var(--border)':'var(--primary)')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
+          +'<div>'
+            +'<div style="font-weight:700;font-size:14px;">'+m.subject+'</div>'
+            +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">✉️ '+m.from+' ('+m.cls+') → '+(toLabels[m.to]||m.to)+'</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">'
+            +(m.read?''+'<span style="background:#e8f5ee;color:#27ae60;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700;">পঠিত</span>':'<span style="background:#fdecea;color:#c0392b;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700;">অপঠিত</span>')
+            +'<span style="font-size:11px;color:var(--text-muted);">'+date+'</span>'
+          +'</div>'
+        +'</div>'
+        +'<p style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:10px;">'+m.body+'</p>'
+        +(m.reply?'<div style="background:#e8f5ee;border-left:3px solid var(--primary);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:10px;font-size:12px;"><b>আপনার উত্তর:</b> '+m.reply+'</div>':'')
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+          +(!m.read?'<button onclick="markMsgRead(\''+m.id+'\')" style="padding:5px 12px;background:var(--primary-ultra-light);color:var(--primary);border:1px solid var(--primary);border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">✅ পঠিত চিহ্নিত করুন</button>':'')
+          +(m.reply?'':'<button onclick="openMsgReply(\''+m.id+'\')" style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">↩ উত্তর দিন</button>')
+        +'</div>'
+        +'<div id="replyBox_'+m.id+'" style="display:none;margin-top:10px;">'
+          +'<textarea id="replyText_'+m.id+'" rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;" placeholder="উত্তর লিখুন..."></textarea>'
+          +'<div style="display:flex;gap:6px;margin-top:6px;">'
+            +'<button onclick="saveMsgReply(\''+m.id+'\')" style="padding:5px 14px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;">💾 পাঠান</button>'
+            +'<button onclick="document.getElementById(\'replyBox_'+m.id+'\').style.display=\'none\'" style="padding:5px 12px;background:#f0f0f0;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;">বাতিল</button>'
+          +'</div>'
+        +'</div>'
+      +'</div>';
+    }).join('')
+  +'</div>';
+}
+
+function markMsgRead(id) {
+  var msg = (data.parentMessages||[]).find(function(m){ return m.id===id; });
+  if(msg) { msg.read=true; save('parentMessages'); renderParentMessages(); }
+}
+
+function openMsgReply(id) {
+  var box = document.getElementById('replyBox_'+id);
+  if(box) box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+function saveMsgReply(id) {
+  var text = (document.getElementById('replyText_'+id)||{}).value.trim();
+  if(!text) { toast('উত্তর লিখুন।','error'); return; }
+  var msg = (data.parentMessages||[]).find(function(m){ return m.id===id; });
+  if(!msg) return;
+  msg.reply = text;
+  msg.read  = true;
+  msg.repliedAt = new Date().toISOString();
+  save('parentMessages');
+  renderParentMessages();
+  toast('উত্তর পাঠানো হয়েছে ✅');
+}
+
+// ═══════════════════════════════════════════
+// ④ REAL-TIME NOTIFICATION SYSTEM
+// ═══════════════════════════════════════════
+
+var _notifs = [];
+var _notifListeners = [];
+var _lastSeen = {};
+
+function initRealtime() {
+  if(!db) return;
+  // Track last known counts
+  _lastSeen = {
+    admissionApplications: (data.admissionApplications||[]).length,
+    onlinePayments: (data.onlinePayments||[]).length,
+    leaves: (data.leaves||[]).length,
+    studentRemarks: (data.studentRemarks||[]).length,
+    parentMessages: (data.parentMessages||[]).length,
+  };
+
+  // Listen to key collections for real-time updates
+  var watchKeys = ['admissionApplications','onlinePayments','leaves','studentRemarks','parentMessages'];
+  watchKeys.forEach(function(key) {
+    var unsub = db.collection('madrasa').doc(key).onSnapshot(function(snap) {
+      if(!snap.exists) return;
+      var newData = snap.data().value || [];
+      var oldCount = _lastSeen[key] || 0;
+
+      // Update local data
+      data[key] = newData;
+      var newCount = newData.length;
+
+      if(newCount > oldCount) {
+        var added = newData.slice(oldCount);
+        added.forEach(function(item) {
+          var msg = '';
+          var icon = '🔔';
+          var page = '';
+          if(key==='admissionApplications') {
+            msg = '📝 নতুন ভর্তি আবেদন: '+(item.name||'')+ ' ('+item.cls+')';
+            icon='📝'; page='admissions';
+          } else if(key==='onlinePayments') {
+            msg = '💳 অনলাইন পেমেন্ট: '+(item.name||item.personName||'')+' — ৳'+(item.amount||'');
+            icon='💳'; page='fee';
+          } else if(key==='leaves') {
+            var isNew = item.createdAt && (Date.now()-new Date(item.createdAt).getTime()) < 60000;
+            if(!isNew) return;
+            msg = '📝 ছুটির আবেদন: '+(item.name||'');
+            icon='📝'; page='leave';
+          } else if(key==='studentRemarks') {
+            var isNew2 = item.createdAt && (Date.now()-new Date(item.createdAt).getTime()) < 60000;
+            if(!isNew2) return;
+            msg = '💬 নতুন মন্তব্য: '+(item.studentName||'');
+            icon='💬'; page='remarks';
+          } else if(key==='parentMessages') {
+            msg = '✉️ অভিভাবকের বার্তা: '+(item.from||'')+' — '+( item.subject||'');
+            icon='✉️'; page='parentmsg';
+          }
+          if(msg) pushNotif(msg, icon, page);
+        });
+      }
+      _lastSeen[key] = newCount;
+
+      // Update badges
+      if(key==='admissionApplications') updateAdmissionBadge();
+      if(key==='parentMessages') updateParentMsgBadge();
+    });
+    _notifListeners.push(unsub);
+  });
+}
+
+function pushNotif(msg, icon, page) {
+  var notif = {
+    id: Date.now().toString(36),
+    msg: msg,
+    icon: icon||'🔔',
+    page: page||'',
+    time: new Date().toLocaleTimeString('bn-BD', {hour:'2-digit',minute:'2-digit'}),
+    read: false
+  };
+  _notifs.unshift(notif);
+  if(_notifs.length > 50) _notifs.pop();
+
+  // Save to sessionStorage
+  try { sessionStorage.setItem('mms_notifs', JSON.stringify(_notifs)); } catch(e){}
+
+  updateNotifBadge();
+  renderNotifList();
+
+  // Browser notification (if permitted)
+  if(window.Notification && Notification.permission==='granted') {
+    new Notification('মাদ্রাসা ম্যানেজমেন্ট', {body: notif.msg, icon: '/favicon.ico'});
+  }
+
+  // Toast
+  toast(notif.msg);
+}
+
+function updateNotifBadge() {
+  var unread = _notifs.filter(function(n){ return !n.read; }).length;
+  var badge = document.getElementById('notifBadge');
+  if(!badge) return;
+  if(unread > 0) {
+    badge.style.display='flex';
+    badge.textContent = unread > 9 ? '9+' : unread;
   } else {
     badge.style.display='none';
   }
 }
+
+function renderNotifList() {
+  var el = document.getElementById('notifList');
+  if(!el) return;
+  if(!_notifs.length) {
+    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">কোনো নোটিফিকেশন নেই</div>';
+    return;
+  }
+  el.innerHTML = _notifs.slice(0,20).map(function(n){
+    return '<div onclick="notifClick(\''+n.id+'\')" style="padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:10px;align-items:flex-start;background:'+(n.read?'#fff':'#f0f7f0')+';transition:.15s;" onmouseover="this.style.background=\'#f0f7f0\'" onmouseout="this.style.background=\''+(n.read?'#fff':'#f0f7f0')+'\'">'
+      +'<span style="font-size:18px;flex-shrink:0;">'+n.icon+'</span>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:12px;line-height:1.5;color:var(--text);">'+n.msg+'</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">'+n.time+'</div>'
+      +'</div>'
+      +(n.read?'':'<span style="width:8px;height:8px;background:#2d7a4f;border-radius:50%;flex-shrink:0;margin-top:4px;"></span>')
+    +'</div>';
+  }).join('');
+}
+
+function notifClick(id) {
+  var n = _notifs.find(function(x){ return x.id===id; });
+  if(!n) return;
+  n.read = true;
+  try { sessionStorage.setItem('mms_notifs', JSON.stringify(_notifs)); } catch(e){}
+  if(n.page) showPage(n.page);
+  toggleNotifPanel();
+  updateNotifBadge();
+  renderNotifList();
+}
+
+function toggleNotifPanel() {
+  var panel = document.getElementById('notifPanel');
+  if(!panel) return;
+  var isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if(!isOpen) {
+    // Mark all as read when opening
+    _notifs.forEach(function(n){ n.read=true; });
+    updateNotifBadge();
+    renderNotifList();
+    try { sessionStorage.setItem('mms_notifs', JSON.stringify(_notifs)); } catch(e){}
+  }
+}
+
+function clearNotifs() {
+  _notifs = [];
+  try { sessionStorage.removeItem('mms_notifs'); } catch(e){}
+  updateNotifBadge();
+  renderNotifList();
+}
+
+// Close panel when clicking outside
+document.addEventListener('click', function(e) {
+  var panel = document.getElementById('notifPanel');
+  var btn   = document.getElementById('notifBtn');
+  if(panel && panel.style.display!=='none' && !panel.contains(e.target) && e.target!==btn && !btn.contains(e.target)) {
+    panel.style.display='none';
+  }
+});
+
+// Load saved notifs from session
+try {
+  var saved = sessionStorage.getItem('mms_notifs');
+  if(saved) { _notifs = JSON.parse(saved); updateNotifBadge(); }
+} catch(e){}
+
+// Request browser notification permission
+if(window.Notification && Notification.permission==='default') {
+  Notification.requestPermission();
+}
+
+
+// ═══════════════════════════════════════════
+// ⑤ TEACHER/STAFF DELETE RESTRICTION
+// শিক্ষক/স্টাফ নিজে ইনপুট করা data মুছতে পারবে না
+// ═══════════════════════════════════════════
+
+function canDelete(recordOwnerId) {
+  // Admin/super_admin সবকিছু মুছতে পারে
+  if(!currentUser) return true;
+  if(currentUser.role==='admin' || currentUser.role==='super_admin') return true;
+  // Teacher/staff: শুধু নিজের entry মুছতে পারে না, admin লাগবে
+  return false;
+}
+
+function requireAdminToDelete(msg) {
+  toast('🔒 '+(msg||'এটি মুছতে Admin অনুমতি লাগবে। Admin এর সাথে যোগাযোগ করুন।'), 'error');
+}
+
 
 // ═══════════════════════════════════════════
 // WhatsApp Widget Logic
@@ -11841,6 +12187,8 @@ function init() {
   populateClassDropdowns();
   showPage('dashboard');
   updateAdmissionBadge();
+  updateParentMsgBadge();
+  setTimeout(initRealtime, 1000); // Firebase ready হওয়ার পর
   const today=new Date().toISOString().split('T')[0];
   ['attDate','fDate','nDate','leaveFrom','leaveTo','sAdmDate','tJoin','qpDate'].forEach(id=>{
     const el=document.getElementById(id); if(el&&!el.value) el.value=today;
@@ -11916,6 +12264,8 @@ var _fns = {
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
   openStudentCSVExport, csvSelectAll, downloadStudentCSV,
+  toggleNotifPanel, clearNotifs, notifClick,
+  updateParentMsgBadge, renderParentMessages, markMsgRead, openMsgReply, saveMsgReply,
   printHTML, printDualSlip,
   admApprove, admReject, admConvert, renderAdmissions, updateAdmissionBadge,
   addSubject, removeSubject, renderSubjectPerClass, renderSubjectPage,
